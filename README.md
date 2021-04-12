@@ -6,11 +6,11 @@
 ## Github으로 협업
 참고 : https://gmlwjd9405.github.io/2017/10/27/how-to-collaborate-on-GitHub-1.html
 
-1. git clone 명령어
+1. git clone [중앙 원격 저장소 URL]
 
 처음 한번만 git clone 명령어로 중앙 원격 저장소를 자신의 로컬 저장소로 복제
 
-2. git checkout -b
+2. git checkout -b [branch name]
 
 **모든 코드 작업은 별도의 branch에서 이뤄지고 나중에 master에 병합**
 
