@@ -1,0 +1,140 @@
+---
+title: "21-1 Data Analytics in R midterm report"
+author: "이서희, 전아현, 최지우"
+date: "4/14/2021"
+output:
+  html_document: default
+---
+
+# 코로나19 팬데믹 전후 청와대 국민 청원 유형 변화 분석
+
+## 분석 배경과 목적
+
+    코로나19 팬데믹은 전세계적으로 뉴노멀의 시대를 열었다. 대부분의 것들이 비대면으로 이어지고, 생활 반경도 사회적 거리두기로 인해 코로나19 이전보다 줄어들었다. 이는 개인의 삶에 많은 변화를 불러드렸고 사람들의 정서에도 많은 영향을 끼쳤다. 가장 대표적으로 기독교에 대한 시선이 좋지 않아졌으며, 기존 가게들은 손님이 없어 문을 닫지만 배달 대행업체는 엄청난 배달건수를 달성중이고, 비IT 업계는 구조조정과 새로운 인력 고용을 줄이고 있지만 IT 업계는 호황을 누리며 대규모 IT 인력 채용에 나서고 있다. 청와대 국민 청원 게시판은 국민들이 청원을 올리고 30일 안에 20만 동의를 얻으면 청와대에서 직접 해당 청원에 대해 답변을 하게 된다. 코로나19는 사회 전반에 많은 영향을 끼친 만큼 국민들이 올리는 청원 유형도 코로나19 이전과 차이가 있을것으로 예상된다.
+
+    이번 분석에서는 코로나19 국내 첫 확진자가 나온날을 기준으로 전후 1년의 유형별 청원 게시글 건수의 비율을 교차분석을 통해 코로나19 전과 후의 유형별 게시글의 차이가 있는지 알아 보고자 하며, 어떤 분야에서 국민들이 많은 청원을 하는지 알 수 있을 것이다. 또한 청원 게시글에서 키워드를 추출하여 청원에 가장 많이 거론되는 주제를 알아보고자 한다.
+
+## 1. 데이터 수집 및 가공
+
+수집할 데이터:
+
+-   번호
+
+-   분류
+
+-   제목
+
+-   청원 만료일 (청원 등록+30일)
+
+-   참여인원
+
+### 1.1 패키지 불러오기
+
+```{r message=F}
+library(RSelenium)
+library(rvest)
+library(httr)
+library(xml2)
+library(tidyverse)
+library(data.table)
+library(kableExtra)
+```
+
+### 1.2 2019/1/20 \~ 2021/1/20 국민 청원 게시글 긁어오기
+
+```{r}
+url = "http://www1.president.go.kr/petitions/?c=0&only=2&page="
+# 2021/4/14일을 기준
+pages <- 1821:12610
+newUrl <- paste0(url,pages)
+df <- data.frame(matrix(ncol=5,nrow=0))
+```
+
+```{r eval=F}
+# 셀리니움 초기 설정
+remDr <- remoteDriver(remoteServerAddr = "localhost", port=4445L, browserName = "chrome")
+remDr$open()
+
+# 청원목록 긁어오기
+while(length(newUrl) > 0){
+  # 사이트 띄우기
+  remDr$navigate(newUrl[1])
+  
+  # html 가져오기
+  src <- remDr$getPageSource()[[1]]
+  html <- read_html(src)
+  
+  ### 번호 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.bl_no')
+  res <- html_text(nodes)
+  no <- gsub("번호 ","",res)
+  
+  ### 분류 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.wv_category:not(.sound_only)')
+  res <- html_text(nodes)
+  category <- gsub("분류 ","",res)
+  
+  ### 제목 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.bl_subject > a')
+  res <- html_text(nodes)
+  title <- gsub("제목 ","",res)
+  
+  ### 청원 종료일 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.bl_date')
+  res <- html_text(nodes)
+  expDate <- gsub("청원 종료일 ","",res)
+  
+  ### 참여인원 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.bl_agree')
+  res <- html_text(nodes)
+  noOfPetition <- gsub("참여인원 ","",res)
+  
+  # 데이터프레임으로 모으기
+  petitions <- data.frame(no,category,title,expDate,noOfPetition)
+  # 열 이름이 같아야 데이터 프레임을 합칠 수 있음
+  colnames(petitions) <- c("V1","V2","V3","V4","V5")
+  df <- rbind(df, petitions)
+  
+  # 최대한 서버 막히지 않게 n초에 한번씩 시도
+  Sys.sleep(3)
+  
+  # 다음 페이지
+  newUrl <- newUrl[-1]
+}
+remDr$close()
+# 파일 내보내기
+write.csv(df,"df.csv", row.names = F)
+```
+
+### 1.3 데이터 정제
+
+```{r include=F}
+afterCovid<-read_csv("data/after_covid_petition.csv")
+beforeCovid<-read_csv("data/before_covid_petition.csv")
+df <- rbind(afterCovid, beforeCovid)
+```
+
+```{r}
+# 중복 관측값 제거
+df <- unique(df)
+colName <- c("id", "category", "title", "expiryDate", "numOfAgrees")
+colnames(df) <- colName
+df %>% head %>% kbl(caption="df") %>% kable_styling
+```
+
+```{r}
+# 형 변환
+df$expiryDate <- as.Date(df$expiryDate)
+df$numOfAgrees <- gsub("\\W","",df$numOfAgrees) %>% as.integer
+str(df)
+
+beforeCovid <- df[which(df$expiryDate<"2020-1-20"),]
+afterCovid <- df[which(df$expiryDate>="2020-1-20"),]
+
+write.csv(df, "petition_data.csv", row.names = F)
+write.csv(beforeCovid, "before_covid_petition_data.csv", row.names = F)
+write.csv(afterCovid, "after_covid_petition_data.csv", row.names = F)
+
+beforeCovid %>% head %>% kbl(caption="beforeCovid") %>% kable_styling
+afterCovid %>% head %>% kbl(caption="afterCovid") %>% kable_styling
+```
