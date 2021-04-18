@@ -5,7 +5,9 @@ date: "4/14/2021"
 output:
   html_document: default
 ---
-
+```{r include=F}
+knitr::opts_chunk$set(echo = T, message = F, warning = F, fig.align='center')
+```
 # 코로나19 팬데믹 전후 청와대 국민 청원 유형 변화 분석
 
 ## 분석 배경과 목적
@@ -30,7 +32,7 @@ output:
 
 ### 1.1 패키지 불러오기
 
-```{r message=F}
+```{r}
 library(RSelenium)
 library(rvest)
 library(httr)
