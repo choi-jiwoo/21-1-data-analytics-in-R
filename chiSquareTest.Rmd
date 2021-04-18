@@ -1,0 +1,53 @@
+---
+author: "최지우"
+title: "chi square test"
+date: "4/17/2021"
+output: html_document
+---
+```{r include=F}
+knitr::opts_chunk$set(echo = T, message = F, warning = F, fig.align='center')
+```
+# 분석
+
+카이제곱 검정을 이용해 코로나 이전과 이후의 청원별 유형 비율의 차이가 있는지 확인
+
+## 데이터 불러오기
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(sjPlot)
+library(gmodels)
+
+afterCovid<-read_csv("data/after_covid_petition.csv") %>% mutate(period="after")
+beforeCovid<-read_csv("data/before_covid_petition.csv") %>% mutate(period="before")
+```
+
+## 카이제곱 검정
+
+### 가설 설정
+
+$H_0 : 코로나\ 이전과\ 이후로\ 청원\ 유형별\ 비율의\ 차이가\ 없다$
+
+$H_1 : 코로나\ 이전과\ 이후로\ 청원\ 유형별\ 비율의\ 차이가\ 있다$
+
+### 가설 검정
+```{r}
+total <- bind_rows(beforeCovid, afterCovid)
+covidTable <- table(total$category, total$period) %>% 
+  prop.table(2)*100 %>% 
+  round(2)
+
+total %>% group_by(period) %>% summarise(count=length(id))
+
+df <- covidTable %>% as.data.frame
+colnames(df) <- c("category","period","ratio")
+df <- pivot_wider(df,names_from = period, values_from = ratio)
+
+category <- unique(total$category)
+sjt.xtab(total$category, total$period, show.col.prc = T, show.exp = T, var.labels = c("청원 카테고리","시기"), encoding='EUC-KR')
+```
+
+p-value가 0으로 귀무가설은 기각되어 대립가설이 채택되었다.
+
+따라서 코로나 이전과 이후로 청원 유형 비율의 차이가 있다.

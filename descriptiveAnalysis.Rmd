@@ -1,0 +1,211 @@
+---
+title: "descriptive analysis"
+author: "최지우"
+date: "4/16/2021"
+output: html_document
+---
+```{r include=F}
+knitr::opts_chunk$set(echo = T, message = F, warning = F, fig.align='center')
+```
+# 기술 통계
+
+## 데이터 불러오기
+
+```{r}
+library(tidyverse)
+library(plotly)
+library(kableExtra)
+library(data.table)
+library(RColorBrewer)
+
+afterCovid<-read_csv("data/after_covid_petition.csv")
+beforeCovid<-read_csv("data/before_covid_petition.csv")
+category <- unique(afterCovid$category)
+```
+
+## 함수 정의
+
+```{r}
+# top 5 청원을 보여주는 함수
+displayTop5 <- function(df, cap){
+  df %>% 
+    arrange(desc(numOfAgrees)) %>% 
+    top_n(5) %>% 
+    kbl(caption=cap) %>% 
+    kable_styling
+}
+```
+
+## 전체 Top 5 청원
+
+```{r}
+# 코로나 이전 청원 Top 5
+displayTop5(beforeCovid, "코로나 이전 청원 Top 5")
+
+# 코로나 이후 청원 Top 5
+displayTop5(afterCovid, "코로나 이후 청원 Top 5")
+```
+
+## 청원 유형별 동의를 10만 이상 받은 청원의 개수
+
+```{r}
+# 청원동의수가 10만 이상 추출
+bcOver100k <- beforeCovid[which(beforeCovid$numOfAgrees>=100000),]
+acOver100k <- afterCovid[which(afterCovid$numOfAgrees>=100000),]
+
+# 청원동의 10만 이상 카테고리 빈도수 -> 이거 비율로 해야되나?
+bcCategoryFreq <- count(bcOver100k, category, sort = T)
+acCategoryFreq <- count(acOver100k, category, sort = T)
+category <- as.data.table(category)
+acBcCat <- left_join(category,bcCategoryFreq) %>% left_join(acCategoryFreq, by='category')
+acBcCat[is.na(acBcCat)] <- 0
+colnames(acBcCat) <- c("category","bcCategory","acCategory")
+
+# 그래프
+acBcCat %>% plot_ly(x = ~category, y = ~bcCategory, type = 'bar', 
+               name = 'Before Covid19', 
+               marker = list(color = 'rgb(49,130,189)'),
+               width=920) %>% 
+      add_trace(y = ~acCategory, 
+                name = 'After Covid19', 
+                marker = list(color = 'rgb(204,204,204)')) %>% 
+      layout(title = "유형별 동의 10만 이상 청원 개수",
+                margin = list(b=100, t=100),
+                barmode = 'group',
+                xaxis = list(title = "", tickangle = -45),
+                yaxis = list(title = ""))
+```
+
+## 코로나 이전 이후 상위 5개 카테고리
+
+```{r}
+# 청원 개수 비율
+bcNumPetitionRatio <- beforeCovid %>% 
+  group_by(category) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count)) %>%
+  head(5) %>% 
+  mutate(ratio=count/sum(count))
+# 카테고리에 factor 부여하여 순서를 나타냄
+bcNumPetitionRatio$category <- bcNumPetitionRatio$category %>% factor(levels = bcNumPetitionRatio$category)
+
+acNumPetitionRatio <- afterCovid %>% 
+  group_by(category) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count)) %>%
+  head(5) %>% 
+  mutate(ratio=count/sum(count))
+acNumPetitionRatio$category <- acNumPetitionRatio$category %>% factor(levels = acNumPetitionRatio$category)
+
+# 코로나 이전
+# Bar
+bcNumPetitionRatio %>% plot_ly(x = ~category, y = ~count, type = 'bar',
+                                  marker = list(color = 'rgb(179, 179, 255)'),
+                                  width=920) %>%
+                          layout(title = "코로나 이전 청원 개수 상위 5개 카테고리",
+                                  xaxis = list(title = ""),
+                                  yaxis = list(title = ""),
+                                  margin = list(b=100, t=100))
+# Pie
+colors <- brewer.pal(8, "Pastel1")
+bcNumPetitionRatio %>% plot_ly(labels = ~category, values = ~ratio, type = 'pie', width=900,
+                               marker = list(colors = colors,
+                                             line = list(color = '#FFFFFF', width = 1)),
+                               textposition = 'inside',
+                               textinfo = 'label+percent',
+                               insidetextfont = list(color = '#000000'),
+                               showlegend = F) %>% 
+                        layout(title = '카테고리 비율',
+                               xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                               yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                               margin = list(b=50, t=50))
+
+# 코로나 이후
+# Bar
+acNumPetitionRatio %>% plot_ly(x = ~category, y = ~count, type = 'bar',
+                                  marker = list(color = 'rgb(179, 179, 255)'),
+                                  width=920) %>%
+                          layout(title = "코로나 이후 청원 개수 상위 5개 카테고리",
+                                  xaxis = list(title = ""),
+                                  yaxis = list(title = ""),
+                                  margin = list(b=100, t=100))
+
+# Pie
+colors <- brewer.pal(8, "Pastel2")
+acNumPetitionRatio %>% plot_ly(labels = ~category, values = ~ratio, type = 'pie', width=900,
+                               marker = list(colors = colors,
+                                             line = list(color = '#FFFFFF', width = 1)),
+                               textposition = 'inside',
+                               textinfo = 'label+percent',
+                               insidetextfont = list(color = '#000000'),
+                               showlegend = F) %>% 
+                        layout(title = '카테고리 비율',
+                               xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                               yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                               margin = list(b=50, t=50))
+
+# 청원 동의수 
+bcNumAgreesRatio <- beforeCovid %>% 
+  group_by(category) %>% 
+  summarise(sum=sum(numOfAgrees)) %>% 
+  arrange(desc(sum)) %>%
+  head(5) %>% 
+  mutate(ratio=sum/sum(sum))
+bcNumAgreesRatio$category <- bcNumAgreesRatio$category %>% factor(levels = bcNumAgreesRatio$category)
+
+acNumAgreesRatio <- afterCovid %>% 
+  group_by(category) %>% 
+  summarise(sum=sum(numOfAgrees)) %>% 
+  arrange(desc(sum)) %>%
+  head(5) %>% 
+  mutate(ratio=sum/sum(sum))
+acNumAgreesRatio$category <- acNumAgreesRatio$category %>% factor(levels = acNumAgreesRatio$category)
+
+# 코로나 이전
+# Bar
+bcNumAgreesRatio %>% plot_ly(x = ~category, y = ~sum, type = 'bar',
+                                  marker = list(color = 'rgb(179, 255, 198)'),
+                                  width=920) %>%
+                          layout(title = "코로나 이전 청원 동의수 상위 5개 카테고리",
+                                  xaxis = list(title = ""),
+                                  yaxis = list(title = ""),
+                                  margin = list(b=100, t=100))
+# Pie
+colors <- brewer.pal(8, "Set2")
+bcNumAgreesRatio %>% plot_ly(labels = ~category, values = ~ratio, type = 'pie', width=900,
+                               marker = list(colors = colors,
+                                             line = list(color = '#FFFFFF', width = 1)),
+                               textposition = 'inside',
+                               textinfo = 'label+percent',
+                               insidetextfont = list(color = '#000000'),
+                               showlegend = F) %>% 
+                          layout(title = '카테고리 비율',
+                                 xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                                 yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                                 margin = list(b=50, t=50))
+
+# 코로나 이후
+# Bar
+acNumAgreesRatio %>% plot_ly(x = ~category, y = ~sum, type = 'bar',
+                                  marker = list(color = 'rgb(179, 255, 198)'),
+                                  width=920) %>%
+                          layout(title = "코로나 이후 청원 동의수 상위 5개 카테고리",
+                                  xaxis = list(title = ""),
+                                  yaxis = list(title = ""),
+                                  margin = list(b=100, t=100))
+
+# Pie
+colors <- brewer.pal(8, "Set3")
+acNumAgreesRatio %>% plot_ly(labels = ~category, values = ~ratio, type = 'pie', width=900,
+                               marker = list(colors = colors,
+                                             line = list(color = '#FFFFFF', width = 1)),
+                               textposition = 'inside',
+                               textinfo = 'label+percent',
+                               insidetextfont = list(color = '#000000'),
+                               showlegend = F) %>% 
+                          layout(title = '카테고리 비율',
+                                 xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                                 yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                                 margin = list(b=50, t=50))
+
+```
