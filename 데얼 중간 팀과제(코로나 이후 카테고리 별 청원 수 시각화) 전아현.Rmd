@@ -1,0 +1,48 @@
+
+## 코로나 이후의 청와대 국민 청원 17개의 카테고리 별 청원 동의 인원수 시각화 그래프 생성하기
+
+```{r}
+
+# 필요한 패키지들 불러와주기
+
+library(tidyverse) # dplyr tidyr, ggplot2 등 tidy 패키지에 속하는 핵심 패키지들을 한번에 설치 및 관리해주는 패키지
+library(hrbrthemes) # 'ggplot2'에 대한 추가 테마, 스케일 및 유틸리티의 모음인 패키지 
+library(viridisLite) # 독자의 그래프 가독성 향상을 위해 설계된 컬러 맵 패키지
+library(forcats) # factor 형 자료 처리를 위한 패키지
+library(ggplot2) # 자료의 시각화 패키지 
+
+
+# 필요한 데이터 불러오기 read.csv() 함수를 통해 외부 csv 파일을 불러와 데이터 프레임 형식으로 저장
+# header: 기본 값은 TRUE로 첫 줄을 변수명으로 읽을 것인지 결정 (여기서는 첫 줄 필요 없으므로 FALSE)
+# stringsAsFactors : 문자열을 팩터로 저장해줄지 정하기
+# fileEncoding, encoding : 텍스트 인코딩에 맞게 파일을 읽어들이기 (전환)
+
+
+data1 <- read.csv(file = "C:/Users/hyesi/Documents/after_covid_petition_data.csv", header = T, stringsAsFactors = TRUE, fileEncoding = "UTF-8", encoding = "CP949")
+
+# 필요없는 열 삭제해주기
+
+data1[, -1] ; data1
+
+view(data1)
+
+# 가져온 후 가공한 데이터를 시각화 하기 위해 필요한 추가적인 패키지 불러와주기
+
+library(dplyr) # tidyverse의 핵심 패키지 중 하나, 직관적으로 데이터 프레임 조작 가능한 패키지
+library(scales) # 데이터 값 조정하는 패키지
+library(RColorBrewer) # 색조를 사용하는 시각화 패키지 
+
+
+# ggplot을 활용하여 코로나 이후 카테고리 별 청원 수 barplot 그리기
+# x축에는 카테고리, y축에는 청원 수를 입력
+# geom_bar() 함수를 사용
+# coord_flip() 함수를 사용하여 x축, y축을 뒤집어 시각화하기
+
+
+ggplot(data1, aes(V2, V5))+geom_bar(stat = 'identity', fill = 'Red')+coord_flip()
+
+
+
+
+```
+
