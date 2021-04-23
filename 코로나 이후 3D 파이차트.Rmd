@@ -1,0 +1,35 @@
+---
+title: "코로나 이후 3D 파이차트"
+output: html_document
+---
+
+```{r}
+# 코로나 이후 국민 청원 데이터 불러오기
+
+
+data2 <- read.csv(file = "C:/Users/hyesi/Documents/after_covid_petition_data.csv", header = T, stringsAsFactors = TRUE)
+
+
+# 필요 데이터만 추출
+circle2 <- table(data2$V2)
+
+# 3D 파이차트로 만들어주기
+#install.packages("plotrix") # 3D 파이차트에 필요한 패키지 설치
+
+
+library(plotrix)
+
+
+# 기준선  (init.angle 사용)
+# 원 크기 조절 (radius 사용)
+# 방향 바꾸기 (clockwise 사용)
+# 원비중(%) 입력하기 
+# 간격 설정하기 (explode 사용)
+# 값 크기 조절하기 (labelcex 사용)
+
+a2 <- round(circle2/sum(circle2)*100,2)
+label <- paste(names(circle2), "\n", a2, "%")
+pie3D(circle2, init.angle=90,  radius = 1.5, clockwise = T, labels = label, labelcex = 0.5, explode = 0.4)
+
+```
+
