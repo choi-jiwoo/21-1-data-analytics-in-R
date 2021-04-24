@@ -1,0 +1,242 @@
+---
+title: "Untitled"
+author: "최지우"
+date: "4/18/2021"
+output: html_document
+---
+```{r include=F}
+knitr::opts_chunk$set(echo = T, message = F, warning = F, fig.align='center')
+```
+
+## 데이터 불러오기
+
+텍스트 분석을 하기 위하여 불용어 리스트를 불러오고 직접 정의해야 하는 불용어들을 정리한 파일을 불러온다.
+
+```{r}
+library(tidyverse)
+library(network)
+library(GGally)
+library(tidymodels)
+library(tidytext)
+library(NLP4kec)
+library(rJava)
+library(tm)
+library(sna)
+library(ggplot2)
+library(wordcloud2)
+library(RColorBrewer)
+library(ggpubr)
+
+before <- read_csv("data/before_covid_petition.csv")
+after <- read_csv("data/after_covid_petition.csv")
+
+# 불용어 사전
+dic <- read.table(file = "한국어불용어100.txt",
+                  sep = "\t",
+                  fileEncoding = "UTF-8")
+dic <- dic[ , 1] %>% as.character()
+
+# 사용자 정의 불용어 사전
+delDic <- readLines("del.txt")
+```
+
+## 텍스트 분석
+
+### 형태소 분석
+
+NLP4kec 패키지를 이용해 형태소 분석을 통해 말뭉치를 만들었다.
+
+```{r}
+# 찾으려는 키워드
+pattern <- "자영업|소상공인"
+
+# 형태소 분석
+textAnalysis <- function(period, pattern){
+  df <- period[grep(pattern, period$title),3]
+  
+  ## 텍스트 공백 제거, 추후 형태소 분석기로 다시 구분
+  df<- sapply(df, str_remove_all, '\\s+')
+  df<- as.data.frame(df, stringsAsFactors = FALSE)
+  
+  df <- df[which(nchar(x=df$title)>5),] %>% as.data.frame
+  colnames(df) <- "title"
+  # 데이터 전처리 2 (형태소 분석을 위한 전처리)
+  ## id 칼럼 붙이기
+  
+  
+  # 형태소 분석
+  # 사용자 정의 감성 사전 추가
+  Parsed_cat<- r_parser_r(df$title, language= "ko", korDicPath="customDic.txt")
+  
+  # corpus생성
+  corp<- VCorpus(VectorSource(Parsed_cat))
+  
+  # 특수문자 & 숫자 & 불용어 제거
+  corp<- tm_map(corp, removePunctuation)
+  corp<- tm_map(corp, removeNumbers) 
+  
+  corp<- tm_map(corp, removeWords, words = c(delDic, dic))
+  
+  dtmTfIdf <- DocumentTermMatrix( x = corp, control = list( removeNumbers = TRUE, wordLengths = c(2, Inf)))  
+
+  # dtm 차원축소
+  dtmTfIdf <- removeSparseTerms(x =  dtmTfIdf, sparse = as.numeric(x = 0.99))
+
+  return(list(dtmTfIdf, Parsed_cat ,df))
+}
+
+# 형태소 분석
+beforeData <- textAnalysis(before, pattern)
+beforeDtmTfIdf <- beforeData[1]
+beforeWords <- beforeData[2]
+bcdf <- beforeData[[3]]
+
+afterData <- textAnalysis(after, pattern)
+afterDtmTfIdf <- afterData[1]
+afterWords <- afterData[2]
+acdf <- afterData[3]
+```
+
+### 워드클라우드
+
+형태소 분석으로 구한 단어 빈도수를 가지고 워드클라우드를 그린다.
+
+```{r}
+wc <- function(dtmTfIdf){
+  wordsFreq <- dtmTfIdf %>% as.matrix() %>% colSums()
+  wordsFreq <- wordsFreq[order(wordsFreq, decreasing = TRUE)]
+  
+  # 단어 빈도표 생성
+  wordDf <- data.frame(
+                  word = names(x = wordsFreq),
+                  freq = wordsFreq,
+                  row.names = NULL) %>% 
+                  arrange(desc(x = freq))
+  wordcloud2(wordDf,
+           fontFamily = 'NanumGothic',
+           minRotation = -pi/6, 
+           maxRotation = -pi/6,
+           rotateRatio = 1,
+           shape = "rectangle",
+           color = brewer.pal(8, "Dark2"))
+}
+```
+
+#### 코로나 이전 워드클라우드
+
+```{r message=F}
+wc(beforeDtmTfIdf[[1]])
+```
+
+#### 코로나 이후 워드클라우드
+
+```{r}
+# 코로나 이후
+wc(afterDtmTfIdf[[1]])
+```
+
+## 감성 분석
+
+게시글의 감성을 알기 위해 'KNU 한국어 감성사전'을 사용하였다.
+
+```{r fig.width=16, fig.height=7}
+# 함수로 만들자
+# 데이터 준비
+positive <- readLines("positive.txt")
+positive <- positive[-1]
+negative <- readLines("negative.txt")
+negative <- negative[-1]
+
+# 점수 부여
+positive <- data.frame(positive, rep(1,length(positive)))
+colnames(positive) <- c("word","score")
+negative <- data.frame(negative, rep(-1,length(negative)))
+colnames(negative) <- c("word","score")
+
+# 감성 사전
+lexicon <- bind_rows(positive, negative) 
+
+# 감성 점수 매칭하기
+matchScore <- function(words){
+  df_pol <- words %>% as.data.frame
+  colnames(df_pol)[1] <- "title"
+  
+  # tidytext 패키지에 unnest_tokens() 를 사용해 토크나이징
+  df_pol <- unnest_tokens(df_pol, input = title,
+                          output = word,
+                          token = "words",
+                          drop = F)
+  
+  # 토큰화 시킨 단어들과 감성 사전에 단어들을 매칭해서 점수 부여
+  df_pol <- df_pol %>%
+    left_join(lexicon, by = "word") %>%
+    mutate(polarity = ifelse(is.na(score), 0, score))
+  
+  # 레이블 주기
+  df_pol <- df_pol %>% mutate(sentiment = ifelse(polarity == 1, "positive", ifelse(polarity == -1, "negative", "neutral")))
+
+  return(df_pol)
+}
+
+# 감성 분석
+sentiAnalysis <- function(words){
+  # 감성 점수 매칭하기
+  df <- matchScore(words)
+  
+  # 전체 감성 점수 구하기
+  score_df <- df %>%
+    group_by(sentiment) %>%
+    summarise(score = sum(polarity))
+  
+  score_df$score <- abs(score_df$score)
+  score_df <- score_df[-2,]
+  score_df$ratio <- round(score_df$score / sum(score_df$score), 4) * 100
+  
+  ratio <- paste0(score_df$sentiment, "\n","(",score_df$ratio, "%",")")
+  fig <- score_df %>% ggpie("ratio", 
+                         label = ratio, 
+                         fill = "sentiment", 
+                         font.family = "NanumGothic",
+                         color = "white",
+                         lab.pos ="in",
+                         lab.font = c(5, "white"),
+                         palette = c("#ff4000", "#0080ff")) + rremove("legend")
+  
+  # df : 감성 점수가 포함된 게시글 
+  # fig : 파이 차트 데이터
+  return(list(df, fig))
+}
+
+# 감성 분석 그래프
+beforeFig <- sentiAnalysis(beforeWords)[[2]] 
+afterFig <- sentiAnalysis(afterWords)[[2]]
+
+# 감성 점수표
+getScoreTable <- function(period, periodLabel){
+  sentiScore <- sentiAnalysis(period)[[1]]
+  scoreTable <- sentiScore %>% 
+    group_by(title) %>% 
+    summarise(score=sum(polarity))
+  # 히스토그램
+  hist(scoreTable$score, breaks=7, main=periodLabel)
+  
+  attach(sentiScore)
+  sentiScoreTable <- bind_cols(sentiment, polarity, rep(periodLabel, length(sentiment)))
+  colnames(sentiScoreTable) <- c("sentiment","score","period")
+  detach(sentiScore)
+  return(list(sentiScoreTable, scoreTable))
+}
+beforeScoreTable <- getScoreTable(beforeWords, "before")
+afterScoreTable <- getScoreTable(afterWords, "after")
+
+beforeSentiScoreTable <- beforeScoreTable[[1]]
+afterSentiScoreTable <- afterScoreTable[[1]]
+
+# 게시글 제목과 감성 점수 테이블
+beforeTitleAndScore <- beforeScoreTable[[2]]
+afterTitleAndScore <- afterScoreTable[[2]]
+
+# 그래프 출력
+ggarrange(beforeFig, afterFig, labels = c("before covid 19", "after covid 19"), hjust = c(-2.3,-2.7), vjust = 3) %>% 
+  annotate_figure(top=text_grob("코로나 전후 청원 게시글 감성", face="bold", family="NanumGothic", size=24))
+```

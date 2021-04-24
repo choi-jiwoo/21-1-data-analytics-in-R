@@ -1,0 +1,53 @@
+---
+title: "tTest"
+author: "최지우"
+date: "4/25/2021"
+output: html_document
+---
+
+# 가설 설정
+
+$귀무가설 : 자영업,\ 소상공인\ 관련\ 국민\ 청원\ 게시글의\ 감성이\ 코로나\ 이전과\ 이후에\ 차이가\ 없다$
+
+$대립가설 : 자영업,\ 소상공인\ 관련\ 국민\ 청원\ 게시글의\ 감성이\ 코로나\ 이전보다\ 이후에\ 더\ 나쁘다$
+
+## 정규성 검정
+
+```{r}
+# 코로나 이전 
+qqline(beforeTitleAndScore$score, col="green")
+shapiro.test(beforeTitleAndScore$score)
+hist(beforeTitleAndScore$score)
+
+# 코로나 이후
+qqline(afterTitleAndScore$score, col="green")
+shapiro.test(afterTitleAndScore$score)
+hist(afterTitleAndScore$score)
+
+```
+
+## 두 모집단의 중심 차이에 대한 비모수 검정
+
+데이터가 정규분포를 따르지 않아 t-test를 사용하지 못하여 Wilcoxon rank sum test를 사용한다
+
+```{r}
+# 코로나 이전 이후 평균 감성 점수
+mean(beforeTitleAndScore$score)
+mean(afterTitleAndScore$score)
+```
+
+코로나 이후 평균 감성 점수가 코로나 이전 평균 감성 점수보다 더 작다.
+
+감성점수가 작을 수록 감성이 나쁘다.
+
+즉 코로나 이후에 감성이 더 나쁘다고 할 수 있다.
+
+통계기법을 사용하여 이 차이가 유의한지 알아보자.
+
+```{r}
+wilcox.test(beforeTitleAndScore$score, afterTitleAndScore$score, alternative="greater")
+```
+
+p-value가 0.03566으로 p-value \< 0.05 이므로 귀무가설은 기각되고 대립가설이 채택되었다.
+
+즉 자영업, 소상공인 관련 국민 청원 게시글의 감성이 코로나 이전보다 이후에 더 나빠졌다고 해석할 수 있다.
