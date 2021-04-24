@@ -130,13 +130,15 @@ df$expiryDate <- as.Date(df$expiryDate)
 df$numOfAgrees <- gsub("\\W","",df$numOfAgrees) %>% as.integer
 str(df)
 
+# 코로나 이전과 이후 데이터로 분리
 beforeCovid <- df[which(df$expiryDate<"2020-1-20"),]
 afterCovid <- df[which(df$expiryDate>="2020-1-20"),]
 
-write.csv(df, "petition_data.csv", row.names = F)
-write.csv(beforeCovid, "before_covid_petition_data.csv", row.names = F)
-write.csv(afterCovid, "after_covid_petition_data.csv", row.names = F)
+# write.csv(df, "petition_data.csv", row.names = F)
+# write.csv(beforeCovid, "before_covid_petition_data.csv", row.names = F)
+# write.csv(afterCovid, "after_covid_petition_data.csv", row.names = F)
 
+# 코로나 이전 이후 데이터 형태
 beforeCovid %>% head %>% kbl(caption="beforeCovid") %>% kable_styling
 afterCovid %>% head %>% kbl(caption="afterCovid") %>% kable_styling
 ```

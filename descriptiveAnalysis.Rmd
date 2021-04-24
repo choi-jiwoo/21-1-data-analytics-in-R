@@ -6,6 +6,7 @@ output: html_document
 ---
 ```{r include=F}
 knitr::opts_chunk$set(echo = T, message = F, warning = F, fig.align='center')
+options(scipen = 1000)
 ```
 # 기술 통계
 
@@ -13,10 +14,12 @@ knitr::opts_chunk$set(echo = T, message = F, warning = F, fig.align='center')
 
 ```{r}
 library(tidyverse)
-library(plotly)
+library(ggpubr)
 library(kableExtra)
 library(data.table)
 library(RColorBrewer)
+
+font <- "NanumGothic"
 
 afterCovid<-read_csv("data/after_covid_petition.csv")
 beforeCovid<-read_csv("data/before_covid_petition.csv")
@@ -46,7 +49,35 @@ displayTop5(beforeCovid, "코로나 이전 청원 Top 5")
 displayTop5(afterCovid, "코로나 이후 청원 Top 5")
 ```
 
-## 청원 유형별 동의를 10만 이상 받은 청원의 개수
+## 코로나 이전과 이후 카테고리별 비율 (final 보고서에 추가 할지 말지 정하기)
+
+```{r}
+b4Ratio <- beforeCovid %>% 
+            group_by(category) %>% 
+              summarise(freq = n()) %>% 
+                mutate(ratio = round(freq / sum(freq),4)*100)
+acRatio <- afterCovid %>% 
+            group_by(category) %>% 
+              summarise(freq = n()) %>% 
+                mutate(ratio = round(freq / sum(freq),4)*100)
+
+acBcRatio <- bind_cols(category, b4Ratio$ratio, acRatio$ratio)
+colnames(acBcRatio) <- c("category","before","after")
+acBcRatioLong <- pivot_longer(acBcRatio,cols = 2:3, names_to = "period", values_to = "ratio")
+acBcRatioLong$period <- factor(acBcRatioLong$period, levels=c("before","after"), order = T)
+
+acBcRatioLong %>% ggbarplot("category", "ratio",
+                          fill = "period", 
+                          color = "period",
+                          xlab = "",
+                          ylab = "",
+                          palette = "Paired",
+                          position = position_dodge(0.9)) %>% 
+                ggpar(x.text.angle = 45, font.family=font) %>% 
+                  annotate_figure(top=text_grob("코로나 이전과 이후 카테고리별 비율", face="bold", family=font, size=16))
+```
+
+## 청원 카테고리별 동의를 10만 이상 받은 청원 건수 (final 보고서에 추가 할지 말지 정하기)
 
 ```{r}
 # 청원동의수가 10만 이상 추출
@@ -61,25 +92,29 @@ acBcCat <- left_join(category,bcCategoryFreq) %>% left_join(acCategoryFreq, by='
 acBcCat[is.na(acBcCat)] <- 0
 colnames(acBcCat) <- c("category","bcCategory","acCategory")
 
+# 그래프 그리기 위한 데이터프레임 설정
+acBcCatLong <- pivot_longer(acBcCat,cols = 2:3, names_to = "period", values_to = "freq")
+acBcCatLong$period <- factor(acBcCatLong$period, levels=c("bcCategory","acCategory"), order = T)
+acBcCatLong$period
+
 # 그래프
-acBcCat %>% plot_ly(x = ~category, y = ~bcCategory, type = 'bar', 
-               name = 'Before Covid19', 
-               marker = list(color = 'rgb(49,130,189)'),
-               width=920) %>% 
-      add_trace(y = ~acCategory, 
-                name = 'After Covid19', 
-                marker = list(color = 'rgb(204,204,204)')) %>% 
-      layout(title = "유형별 동의 10만 이상 청원 개수",
-                margin = list(b=100, t=100),
-                barmode = 'group',
-                xaxis = list(title = "", tickangle = -45),
-                yaxis = list(title = ""))
+acBcCatLong %>% ggbarplot("category", "freq",
+                          fill = "period", 
+                          color = "period",
+                          xlab = "",
+                          ylab = "",
+                          palette = "Paired",
+                          position = position_dodge(0.9)) %>% 
+                ggpar(x.text.angle = 45, font.family=font) %>% 
+                  annotate_figure(top=text_grob("청원동의 10만 이상 카테고리별 청원 건수", face="bold", family=font, size=16))
 ```
 
-## 코로나 이전 이후 상위 5개 카테고리
+## 코로나 이전 이후 상위 5개 카테고리 (final 보고서에 추가 할지 말지 정하기)
 
-```{r}
-# 청원 개수 비율
+### 청원 개수별
+
+```{r fig.width=16, fig.height=7}
+# 청원 개수, 비율
 bcNumPetitionRatio <- beforeCovid %>% 
   group_by(category) %>% 
   summarise(count=n()) %>% 
@@ -97,54 +132,56 @@ acNumPetitionRatio <- afterCovid %>%
   mutate(ratio=count/sum(count))
 acNumPetitionRatio$category <- acNumPetitionRatio$category %>% factor(levels = acNumPetitionRatio$category)
 
-# 코로나 이전
 # Bar
-bcNumPetitionRatio %>% plot_ly(x = ~category, y = ~count, type = 'bar',
-                                  marker = list(color = 'rgb(179, 179, 255)'),
-                                  width=920) %>%
-                          layout(title = "코로나 이전 청원 개수 상위 5개 카테고리",
-                                  xaxis = list(title = ""),
-                                  yaxis = list(title = ""),
-                                  margin = list(b=100, t=100))
-# Pie
-colors <- brewer.pal(8, "Pastel1")
-bcNumPetitionRatio %>% plot_ly(labels = ~category, values = ~ratio, type = 'pie', width=900,
-                               marker = list(colors = colors,
-                                             line = list(color = '#FFFFFF', width = 1)),
-                               textposition = 'inside',
-                               textinfo = 'label+percent',
-                               insidetextfont = list(color = '#000000'),
-                               showlegend = F) %>% 
-                        layout(title = '카테고리 비율',
-                               xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                               yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                               margin = list(b=50, t=50))
+fig1 <- bcNumPetitionRatio %>% ggbarplot("category", "count",
+                                    xlab = "before covid19",
+                                    ylab = "",
+                                    fill = "#0080ff",
+                                    color = "#0080ff") %>% 
+                               ggpar(x.text.angle = 45,
+                                    font.family=font)
 
-# 코로나 이후
-# Bar
-acNumPetitionRatio %>% plot_ly(x = ~category, y = ~count, type = 'bar',
-                                  marker = list(color = 'rgb(179, 179, 255)'),
-                                  width=920) %>%
-                          layout(title = "코로나 이후 청원 개수 상위 5개 카테고리",
-                                  xaxis = list(title = ""),
-                                  yaxis = list(title = ""),
-                                  margin = list(b=100, t=100))
+fig2 <- acNumPetitionRatio %>% ggbarplot("category", "count",
+                                    xlab = "after covid19",
+                                    ylab = "",
+                                    fill = "#0080ff",
+                                    color = "#0080ff") %>% 
+                               ggpar(x.text.angle = 45,
+                                    font.family=font)
+
+ggarrange(fig1, fig2) %>% 
+  annotate_figure(top=text_grob("코로나 전후 청원 건수 상위 5개 카테고리", face="bold", family=font, size=24))
 
 # Pie
-colors <- brewer.pal(8, "Pastel2")
-acNumPetitionRatio %>% plot_ly(labels = ~category, values = ~ratio, type = 'pie', width=900,
-                               marker = list(colors = colors,
-                                             line = list(color = '#FFFFFF', width = 1)),
-                               textposition = 'inside',
-                               textinfo = 'label+percent',
-                               insidetextfont = list(color = '#000000'),
-                               showlegend = F) %>% 
-                        layout(title = '카테고리 비율',
-                               xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                               yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                               margin = list(b=50, t=50))
+ratio <- paste0(bcNumPetitionRatio$category, "\n","(",round(bcNumPetitionRatio$ratio,4)*100, "%",")")
+fig3 <- bcNumPetitionRatio %>% ggpie("ratio", 
+                                     label = ratio, 
+                                     fill = "category", 
+                                     font.family = font,
+                                     color = "white",
+                                     lab.pos ="in",
+                                     lab.font = c("black"),
+                                     palette = c("#33cc33", "#b2e561", "#feffa2", "#fbe160", "#ffbf00")) +
+                               theme(legend.text= element_text(size=12), legend.position = "left",legend.direction = "vertical")
 
-# 청원 동의수 
+ratio <- paste0(acNumPetitionRatio$category, "\n","(",round(acNumPetitionRatio$ratio,4)*100, "%",")")
+fig4 <- acNumPetitionRatio %>% ggpie("ratio", 
+                                     label = ratio, 
+                                     fill = "category", 
+                                     font.family = font,
+                                     color = "white",
+                                     lab.pos ="in",
+                                     lab.font = c("black"), 
+                                     palette = c("#00bfff", "#33e2f6", "#92ffe4", "#adec7d", "#ffbf00")) +
+                               theme(legend.text= element_text(size=12), legend.position = "right",legend.direction = "vertical")
+
+ggarrange(fig3, fig4, labels = c("before covid 19", "after covid 19"), hjust = c(-2.9,-2.1), vjust = 3) %>% 
+  annotate_figure(top=text_grob("코로나 전후 청원 건수 상위 5개 카테고리 비율", face="bold", family=font, size=24))
+```
+
+### 청원 참여인원수별
+
+```{r fig.width=16, fig.height=7}
 bcNumAgreesRatio <- beforeCovid %>% 
   group_by(category) %>% 
   summarise(sum=sum(numOfAgrees)) %>% 
@@ -161,51 +198,51 @@ acNumAgreesRatio <- afterCovid %>%
   mutate(ratio=sum/sum(sum))
 acNumAgreesRatio$category <- acNumAgreesRatio$category %>% factor(levels = acNumAgreesRatio$category)
 
-# 코로나 이전
 # Bar
-bcNumAgreesRatio %>% plot_ly(x = ~category, y = ~sum, type = 'bar',
-                                  marker = list(color = 'rgb(179, 255, 198)'),
-                                  width=920) %>%
-                          layout(title = "코로나 이전 청원 동의수 상위 5개 카테고리",
-                                  xaxis = list(title = ""),
-                                  yaxis = list(title = ""),
-                                  margin = list(b=100, t=100))
-# Pie
-colors <- brewer.pal(8, "Set2")
-bcNumAgreesRatio %>% plot_ly(labels = ~category, values = ~ratio, type = 'pie', width=900,
-                               marker = list(colors = colors,
-                                             line = list(color = '#FFFFFF', width = 1)),
-                               textposition = 'inside',
-                               textinfo = 'label+percent',
-                               insidetextfont = list(color = '#000000'),
-                               showlegend = F) %>% 
-                          layout(title = '카테고리 비율',
-                                 xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                                 yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                                 margin = list(b=50, t=50))
+fig1 <- bcNumAgreesRatio %>% ggbarplot("category", "sum",
+                                    xlab = "before covid19",
+                                    ylab = "",
+                                    fill = "#0080ff",
+                                    color = "#0080ff") %>% 
+                               ggpar(x.text.angle = 45,
+                                    font.family=font)
 
-# 코로나 이후
-# Bar
-acNumAgreesRatio %>% plot_ly(x = ~category, y = ~sum, type = 'bar',
-                                  marker = list(color = 'rgb(179, 255, 198)'),
-                                  width=920) %>%
-                          layout(title = "코로나 이후 청원 동의수 상위 5개 카테고리",
-                                  xaxis = list(title = ""),
-                                  yaxis = list(title = ""),
-                                  margin = list(b=100, t=100))
+fig2 <- acNumAgreesRatio %>% ggbarplot("category", "sum",
+                                    xlab = "after covid19",
+                                    ylab = "",
+                                    fill = "#0080ff",
+                                    color = "#0080ff") %>% 
+                               ggpar(x.text.angle = 45,
+                                    font.family=font)
+
+ggarrange(fig1, fig2) %>% 
+  annotate_figure(top=text_grob("코로나 전후 청원 참여인원수 상위 5개 카테고리", face="bold", family=font, size=24))
 
 # Pie
-colors <- brewer.pal(8, "Set3")
-acNumAgreesRatio %>% plot_ly(labels = ~category, values = ~ratio, type = 'pie', width=900,
-                               marker = list(colors = colors,
-                                             line = list(color = '#FFFFFF', width = 1)),
-                               textposition = 'inside',
-                               textinfo = 'label+percent',
-                               insidetextfont = list(color = '#000000'),
-                               showlegend = F) %>% 
-                          layout(title = '카테고리 비율',
-                                 xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                                 yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                                 margin = list(b=50, t=50))
+ratio <- paste0(bcNumAgreesRatio$category, "\n","(",round(bcNumAgreesRatio$ratio,4)*100, "%",")")
+fig3 <- bcNumAgreesRatio %>% ggpie("ratio", 
+                                     label = ratio, 
+                                     fill = "category", 
+                                     font.family = font,
+                                     color = "white",
+                                     lab.pos ="in",
+                                     lab.font = c("black"),
+                                     palette = c("#33cc33", "#b2e561", "#feffa2", "#fbe160", "#ffbf00")) +
+                               theme(legend.text= element_text(size=12), legend.position = "left",legend.direction = "vertical")
 
+ratio <- paste0(acNumAgreesRatio$category, "\n","(",round(acNumAgreesRatio$ratio,4)*100, "%",")")
+fig4 <- acNumAgreesRatio %>% ggpie("ratio", 
+                                     label = ratio, 
+                                     fill = "category", 
+                                     font.family = font,
+                                     color = "white",
+                                     lab.pos ="in",
+                                     lab.font = c("black"), 
+                                     palette = c("#00bfff", "#33e2f6", "#92ffe4", "#adec7d", "#ffbf00")) +
+                               theme(legend.text= element_text(size=12), legend.position = "right",legend.direction = "vertical")
+
+ggarrange(fig3, fig4, labels = c("before covid 19", "after covid 19"), hjust = c(-2.9,-2.1), vjust = 3) %>% 
+  annotate_figure(top=text_grob("코로나 전후 청원 참여인원수 상위 5개 카테고리 비율", face="bold", family=font, size=24))
 ```
+
+## 자영업 키워드로 검색한 데이터
