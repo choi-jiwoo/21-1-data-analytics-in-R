@@ -1,0 +1,24 @@
+
+```{r}
+# 코로나 이전 청원 데이터 불러오기
+data2 <- read.csv(file = "C:/Users/hyesi/Documents/before_covid_petition(1).csv", header = T, stringsAsFactors = FALSE)
+
+library(dplyr)
+
+# 데이터 구조 확인
+str(data2)
+
+# 형변환
+data2$expiryDate <- as.Date(data2$expiryDate)
+
+data2$numOfAgrees <- gsub("\\W","",data2$numOfAgrees) %>% as.integer
+
+# 필요한 패키지 불러오기
+library(ggplot2)
+library(tidyverse)
+
+# 코로나 이전 카테고리 별 청원 동의 인원수 사탕그래프 생성
+ggplot(data2, aes(category, numOfAgrees , color = category))+geom_segment(aes(xend=category, yend=0))+geom_point(size=1.5)+coord_flip()
+
+
+```
