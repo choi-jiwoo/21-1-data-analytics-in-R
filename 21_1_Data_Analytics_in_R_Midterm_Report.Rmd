@@ -42,7 +42,9 @@ library(GGally)
 library(tidytext)
 ```
 
-### 1.2 2019/1/20 \~ 2021/1/20 국민 청원 게시글 긁어오기
+### 1.2 데이터 크롤링
+
+
 
 ```{r}
 url = "http://www1.president.go.kr/petitions/?c=0&only=2&page="
@@ -415,9 +417,8 @@ NLP4kec 패키지에 있는 r_parser_r 함수를 사용해 형태소 분석을 �
 
 ```{r}
 # 형태소 분석 함수
-textAnalysis <- function(period, pattern){
-  df <- period[grep(pattern, period$title),3]
-  
+textAnalysis <- function(period){
+  df <- period[,3]
   ## 텍스트 공백 제거, 추후 형태소 분석기로 다시 구분
   df<- sapply(df, str_remove_all, '\\s+')
   df<- as.data.frame(df, stringsAsFactors = FALSE)
@@ -454,14 +455,14 @@ textAnalysis <- function(period, pattern){
 }
 
 # 형태소 분석
-beforeTextData <- textAnalysis(beforeCovid, pattern)
+beforeTextData <- textAnalysis(before_cat)
 # 가중치를 부여한 문서 단어 행렬
 beforeDtmTfIdf <- beforeTextData[1]
 # 형태소 분석 결과값
 beforeWords <- beforeTextData[2] 
 # bcdf <- beforeTextData[[3]]
 
-afterTextData <- textAnalysis(afterCovid, pattern)
+afterTextData <- textAnalysis(after_cat)
 afterDtmTfIdf <- afterTextData[1]
 afterWords <- afterTextData[2]
 # acdf <- afterTextData[3]
@@ -537,7 +538,7 @@ getNetTerms <- function(corTerms, range){
 }
 
 beforeNetTerms <- getNetTerms(beforeCorTerms, 0.2)
-afterNetTerms <- getNetTerms(afterCorTerms, 0.2)
+afterNetTerms <- getNetTerms(afterCorTerms, 0.45)
 
 # 매개중심성 계산
 getBetweennessCentrality <- function(netTerms){
@@ -719,8 +720,8 @@ shapiro.test(afterTitleAndScore$score)
 
 ```{r}
 # 코로나 이전 이후 평균 감성 점수
-mean(beforeTitleAndScore$score)
-mean(afterTitleAndScore$score)
+median(beforeTitleAndScore$score)
+median(afterTitleAndScore$score)
 ```
 
 코로나 이후 평균 감성 점수가 코로나 이전 평균 감성 점수보다 더 작다.
