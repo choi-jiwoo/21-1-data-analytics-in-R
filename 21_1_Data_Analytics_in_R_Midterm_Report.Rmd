@@ -450,8 +450,7 @@ textAnalysis <- function(period){
 
   # dtmTfIdf : 가중치를 부여한 문서 단어 행렬
   # Parsed_cat : 형태소 분석 결과값
-  # 
-  return(list(dtmTfIdf, Parsed_cat ,df))
+  return(list(dtmTfIdf, Parsed_cat))
 }
 
 # 형태소 분석
@@ -460,12 +459,10 @@ beforeTextData <- textAnalysis(before_cat)
 beforeDtmTfIdf <- beforeTextData[1]
 # 형태소 분석 결과값
 beforeWords <- beforeTextData[2] 
-# bcdf <- beforeTextData[[3]]
 
 afterTextData <- textAnalysis(after_cat)
 afterDtmTfIdf <- afterTextData[1]
 afterWords <- afterTextData[2]
-# acdf <- afterTextData[3]
 ```
 
 ### 3.5 워드클라우드
