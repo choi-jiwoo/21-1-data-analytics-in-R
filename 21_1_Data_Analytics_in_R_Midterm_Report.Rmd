@@ -583,9 +583,7 @@ drawNetworkMap(afterNetTerms, afterCorTerms, "이후")
 # 함수로 만들자
 # 감성사전 불러오기
 positive <- readLines("positive.txt")
-positive <- positive[-1]
 negative <- readLines("negative.txt")
-negative <- negative[-1]
 
 # 점수 부여
 positive <- data.frame(positive, rep(1,length(positive)))
