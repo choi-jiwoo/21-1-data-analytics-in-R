@@ -42,7 +42,9 @@ library(GGally)
 library(tidytext)
 ```
 
-### 1.2 2019/1/20 \~ 2021/1/20 국민 청원 게시글 긁어오기
+### 1.2 데이터 크롤링
+
+
 
 ```{r}
 url = "http://www1.president.go.kr/petitions/?c=0&only=2&page="
@@ -537,7 +539,7 @@ getNetTerms <- function(corTerms, range){
 }
 
 beforeNetTerms <- getNetTerms(beforeCorTerms, 0.2)
-afterNetTerms <- getNetTerms(afterCorTerms, 0.2)
+afterNetTerms <- getNetTerms(afterCorTerms, 0.45)
 
 # 매개중심성 계산
 getBetweennessCentrality <- function(netTerms){
@@ -719,8 +721,8 @@ shapiro.test(afterTitleAndScore$score)
 
 ```{r}
 # 코로나 이전 이후 평균 감성 점수
-mean(beforeTitleAndScore$score)
-mean(afterTitleAndScore$score)
+median(beforeTitleAndScore$score)
+median(afterTitleAndScore$score)
 ```
 
 코로나 이후 평균 감성 점수가 코로나 이전 평균 감성 점수보다 더 작다.
