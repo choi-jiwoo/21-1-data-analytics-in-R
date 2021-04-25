@@ -1,0 +1,740 @@
+---
+title: "21-1 Data Analytics in R Midterm report"
+author: "이서희, 전아현, 최지우"
+date: "4/25/2021"
+output: html_document
+---
+```{r include=F}
+knitr::opts_chunk$set(echo = T, message = F, warning = F, fig.align='center')
+options(scipen = 1000)
+font <- "NanumGothic"
+```
+
+## 1. 데이터 수집 및 가공
+
+### 1.1 패키지 불러오기
+
+```{r}
+# 크롤링 패키지
+library(RSelenium)
+library(rvest)
+library(httr)
+library(xml2)
+# data manipulation
+library(tidyverse)
+library(data.table)
+# 그래프 그리는 패키지
+library(gridExtra)
+library(kableExtra)
+library(ggpubr)
+library(RColorBrewer)
+library(ggplot2)
+library(wordcloud2)
+# 형태소 분석
+library(NLP4kec)
+library(rJava)
+library(tm)
+# 네트워크 맵
+library(network)
+library(sna)
+library(GGally)
+# 텍스트 분석
+library(tidytext)
+```
+
+### 1.2 2019/1/20 \~ 2021/1/20 국민 청원 게시글 긁어오기
+
+```{r}
+url = "http://www1.president.go.kr/petitions/?c=0&only=2&page="
+# 2021/4/14일을 기준
+pages <- 1821:12610
+newUrl <- paste0(url,pages)
+df <- data.frame(matrix(ncol=5,nrow=0))
+```
+
+```{r eval=F}
+# 셀리니움 초기 설정
+remDr <- remoteDriver(remoteServerAddr = "localhost", port=4445L, browserName = "chrome")
+remDr$open()
+
+# 청원목록 긁어오기
+while(length(newUrl) > 0){
+  # 사이트 띄우기
+  remDr$navigate(newUrl[1])
+  
+  # html 가져오기
+  src <- remDr$getPageSource()[[1]]
+  html <- read_html(src)
+  
+  ### 번호 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.bl_no')
+  res <- html_text(nodes)
+  no <- gsub("번호 ","",res)
+  
+  ### 분류 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.wv_category:not(.sound_only)')
+  res <- html_text(nodes)
+  category <- gsub("분류 ","",res)
+  
+  ### 제목 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.bl_subject > a')
+  res <- html_text(nodes)
+  title <- gsub("제목 ","",res)
+  
+  ### 청원 종료일 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.bl_date')
+  res <- html_text(nodes)
+  expDate <- gsub("청원 종료일 ","",res)
+  
+  ### 참여인원 ###
+  nodes <- html_nodes(html, 'div.ct_list1 > div.board > div.b_list > div.bl_body > ul.petition_list > li > div.bl_wrap > div.bl_agree')
+  res <- html_text(nodes)
+  noOfPetition <- gsub("참여인원 ","",res)
+  
+  # 데이터프레임으로 모으기
+  petitions <- data.frame(no,category,title,expDate,noOfPetition)
+  # 열 이름이 같아야 데이터 프레임을 합칠 수 있음
+  colnames(petitions) <- c("V1","V2","V3","V4","V5")
+  df <- rbind(df, petitions)
+  
+  # 최대한 서버 막히지 않게 n초에 한번씩 시도
+  Sys.sleep(3)
+  
+  # 다음 페이지
+  newUrl <- newUrl[-1]
+}
+remDr$close()
+# 파일 내보내기
+write.csv(df,"df.csv", row.names = F)
+```
+
+### 1.3 데이터 정제
+
+```{r include=F}
+afterCovid<-read_csv("data/after_covid_petition.csv")
+beforeCovid<-read_csv("data/before_covid_petition.csv")
+df <- rbind(afterCovid, beforeCovid)
+```
+```{r}
+# 중복 관측값 제거
+df <- unique(df)
+colName <- c("id", "category", "title", "expiryDate", "numOfAgrees")
+colnames(df) <- colName
+# 데이터 보여주기
+df %>% head %>% kbl(caption="df") %>% kable_styling
+
+# 형 변환
+df$expiryDate <- as.Date(df$expiryDate)
+df$numOfAgrees <- gsub("\\W","",df$numOfAgrees) %>% as.integer
+str(df)
+
+# 코로나 이전과 이후 데이터로 분리
+beforeCovid <- df[which(df$expiryDate<"2020-1-20"),]
+afterCovid <- df[which(df$expiryDate>="2020-1-20"),]
+
+# write.csv(df, "petition_data.csv", row.names = F)
+# write.csv(beforeCovid, "before_covid_petition_data.csv", row.names = F)
+# write.csv(afterCovid, "after_covid_petition_data.csv", row.names = F)
+
+# 코로나 이전 이후 데이터 형태
+str(beforeCovid)
+str(afterCovid)
+
+beforeCovid %>% head %>% kbl(caption="beforeCovid") %>% kable_styling
+afterCovid %>% head %>% kbl(caption="afterCovid") %>% kable_styling
+```
+
+## 2. 기술통계
+
+### 2.1 청원 동의수 top 5
+
+```{r}
+# 카테고리만 추출하기
+category <- unique(afterCovid$category)
+
+# 코로나 이전 청원 Top 5
+beforeCovid %>% 
+    arrange(desc(numOfAgrees)) %>% 
+    top_n(5) %>% 
+    kbl(caption="코로나 이전 청원 Top 5") %>% 
+    kable_styling
+
+# 코로나 이후 청원 Top 5
+afterCovid %>% 
+    arrange(desc(numOfAgrees)) %>% 
+    top_n(5) %>% 
+    kbl(caption="코로나 이후 청원 Top 5") %>% 
+    kable_styling
+```
+
+### 2.2 카테고리별 청원 동의수 
+
+```{r fig.width=8}
+# 코로나 이전
+bca <- ggplot(beforeCovid, aes(category, numOfAgrees , color = category)) + # bca : before covid agrees
+  geom_segment(aes(xend=category, yend=0)) + 
+  geom_point(size=1.5)+coord_flip() + 
+  labs(title="코로나 이전", x ="", y = "청원 동의수") +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")+
+  theme(text = element_text(family = "NanumGothic"))
+#코로나 이후
+aca <- ggplot(afterCovid, aes(category, numOfAgrees , color = category)) + # aca : after covid agrees
+  geom_segment(aes(xend=category, yend=0)) + 
+  geom_point(size=1.5)+coord_flip() + 
+  labs(title="코로나 이후", x ="", y = "청원 동의수") +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")+
+  theme(text = element_text(family = "NanumGothic"))
+
+title <- text_grob("카테고리별 청원 동의수", family = "NanumGothic", size = 18, face = "bold")
+grid.arrange(bca, aca, ncol=2, top=title)
+```
+
+### 2.3 카테고리별 비율
+
+```{r}
+# 코로나 이전
+b4Ratio <- beforeCovid %>% 
+            group_by(category) %>% 
+              summarise(freq = n()) %>% 
+                mutate(ratio = round(freq / sum(freq),4)*100)
+# 코로나 이후
+acRatio <- afterCovid %>% 
+            group_by(category) %>% 
+              summarise(freq = n()) %>% 
+                mutate(ratio = round(freq / sum(freq),4)*100)
+
+acBcRatio <- bind_cols(category, b4Ratio$ratio, acRatio$ratio)
+colnames(acBcRatio) <- c("category","before","after")
+
+# 그래프를 그리기 위해 코로나 이전, 이후 청원 건수 비율을 long 으로 변경
+acBcRatioLong <- pivot_longer(acBcRatio,cols = 2:3, names_to = "period", values_to = "ratio")
+# 코로나 이전 이후 순서 정하기
+acBcRatioLong$period <- factor(acBcRatioLong$period, levels=c("before","after"), order = T)
+
+# 그래프
+acBcRatioLong %>% ggbarplot("category", "ratio",
+                          fill = "period", 
+                          color = "period",
+                          xlab = "",
+                          ylab = "",
+                          palette = "Paired",
+                          position = position_dodge(0.9)) %>% 
+                ggpar(x.text.angle = 45, font.family=font) %>% 
+                  annotate_figure(top=text_grob("코로나 이전과 이후 카테고리별 비율", face="bold", family=font, size=16))
+```
+
+자영업 소상공인 키워드로 분석을 진행하고자 한다
+
+## 3. 텍스트 분석
+
+### 3.1 데이터 추출
+
+자영업과 소상공인 키워드 추출
+
+```{r}
+# 찾으려는 키워드
+pattern <- "자영업|소상공인"
+before_cat <- beforeCovid[grep(pattern, beforeCovid$title),]
+after_cat <- afterCovid[grep(pattern, afterCovid$title),]
+total_cat <- rbind(before_cat, after_cat)
+
+str(before_cat)
+str(after_cat)
+
+# category 확인
+sort(unique(before_cat$category))
+sort(unique(after_cat$category))
+length(unique(before_cat$category))
+length(unique(after_cat$category))
+```
+
+코로나 이전에는 16개의 카테고리에 자영업/소상공인에 관한 청원들이 게시되었고 코로나 이후에는 14개 카테고리에 청원들이 게시되었다.
+
+같은 주제이지만 청원 게시자가 임의로 카테고리를 설정하면서 발생한 상황으로 해석된다. 이는 카테고리로만 분석을 진행할시 완전한 데이터를 얻지 못하게 될 가능성을 높임으로 새로운 방침이 필요해 보인다.
+
+```{r}
+# 카테고리별 청원건수 빈도와 비율 확인후 데이터프레임 생성
+before_df<- cbind(freq= table(before_cat$category), relative= prop.table(table(before_cat$category)))
+before_df<- as.data.frame(before_df)
+
+after_df<- cbind(freq= table(after_cat$category), relative= prop.table(table(after_cat$category)))
+after_df<- as.data.frame(after_df)
+# 비율로 정렬
+before_df<- before_df[c(order(-rank(before_df$relative))),]
+before_df %>% head %>% kbl(caption="before_df") %>% kable_styling
+
+after_df<- after_df[c(order(-rank(after_df$relative))),]
+after_df %>% head %>% kbl(caption="after_df") %>% kable_styling
+
+## rownames가 카테고리로 되어있어 카테고리를 열 변수로 빼고 새로운 행이름을 설정
+setDT(before_df, keep.rownames = TRUE)[]
+## 변수명이 rn으로 빼진 카테고리 변수명을 category로 재설정
+colnames(before_df)[1] <- "category"
+## df에 period 변수 생성
+before_df<- before_df %>%
+  mutate(period="before")
+
+# 코로나 이후 데이터도 동일하게 적용
+setDT(after_df, keep.rownames = TRUE)[]
+colnames(after_df)[1] <- "category"
+after_df<- after_df %>%
+  mutate(period="after")
+
+# 카테고리별 청원동의 인원수 변수 생성 후 before_df, after_df통합
+temp<- data.frame()
+temp<- beforeCovid %>%
+  group_by(category) %>%
+  summarise(AgreeSum= sum(numOfAgrees))
+before_df<- merge(before_df, temp, by='category')
+
+temp<- afterCovid %>%
+  group_by(category) %>%
+  summarise(AgreeSum= sum(numOfAgrees))
+after_df<- merge(after_df, temp, by='category')
+total_df<- rbind(after_df,before_df)
+total_df %>% head %>% kbl(caption="total_df") %>% kable_styling
+```
+
+### 3.2 자영업/소상공인 키워드에 대한 기술 통계
+```{r}
+# 비율 차이 그래프
+ggplot(total_df, aes(x= category, y= relative, fill=period))+
+  geom_bar(stat="identity",position= position_dodge2(reverse = TRUE))+
+  scale_fill_manual(values=c("#0484bc","#a4d4e4"))+
+  labs(title="코로나 전후 자영업 소상공인 키워드에 대한 \n카테고리 별 청원 비율")+
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5, face='bold', size = 15))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5 ))+
+  theme(legend.text = element_text(size = 8))+
+  guides(fill=guide_legend(reverse=TRUE))+
+  theme(text = element_text(family = "NanumGothic"))
+```
+
+일자리 카테고리에 올린 청원 비율이 코로나 이후로 많이 줄어들었고, 반대로 행정 카테고리에 올린 청원 비율이 많이 올라갔다.
+
+이는 자영업/소상공인 키워드를 가진 청원의 성격이 일반적인 일자리 개념에서 행정적인 개념으로 옮겨갔음을 의미한다.
+
+장기화 되가는 사회적 거리두기 방침과 5인 이상 사적모임 금지, 그리고 단축 영업 같은 행정조치로 인해 발생한 상황으로 해석된다.
+
+```{r fig.height=5}
+# 동의수 차이
+numOfAgreesDiff <- data.frame(period=c("before","after"),
+                              numOfAgrees=c(before_cat %>% summarise(sum=sum(numOfAgrees)) %>% unlist, 
+                                            after_cat %>% summarise(sum=sum(numOfAgrees)) %>% unlist))
+# 동의수 차이 비교 그래프
+bna <- ggbarplot(numOfAgreesDiff, x = "period", y = "numOfAgrees", # bna : before num agrees
+  fill = "period", 
+  color = "period",
+  palette = "Paired",
+  label = TRUE, 
+  label.pos = "out",
+  title = "코로나 전후 동의수") +
+  theme_pubr(base_family = "NanumGothic")
+
+# 청원수 차이
+numDiff <- data.frame(period=c("before","after"),
+                              freq=c(before_cat %>% summarise(freq=n()) %>% unlist, 
+                                            after_cat %>% summarise(freq=n()) %>% unlist))
+# 청원수 차이 비교 그래프
+ana <- ggbarplot(numDiff, x = "period", y = "freq", # ana : after num agrees
+  fill = "period", 
+  color = "period",
+  palette = "Paired",
+  label = TRUE, 
+  label.pos = "out",
+  title = "코로나 전후 청원수") +
+  theme_pubr(base_family = "NanumGothic")
+
+grid.arrange(bna, ana ,ncol=2)
+```
+
+청원 건수를 보았을 땐 코로나 이전에 청원 건수가 더 많지만 청원 동의수를 보았을 땐 코로나 이후에 압도적으로 동의수가 많음을 알 수 있다. 
+
+이는 코로나 후에 자영업 청원에 대한 국민적 공감대가 높아졌음을 확인할 수 있다. 
+
+```{r}
+# 일별 청원 건수
+petit_count<- total_cat %>%
+  group_by(expiryDate) %>%
+  tally() 
+# 일별 청원 동의수
+petit_ratio<- total_cat %>%
+  group_by(expiryDate) %>%
+  dplyr::summarize(agreeSum= sum(numOfAgrees))
+# 청원건수 대비 청원동의 인원수
+petit_rat_cnt<- merge(petit_ratio, petit_count, by="expiryDate") 
+petit_rat_cnt$ratCnt<- petit_rat_cnt$agreeSum / petit_rat_cnt$n  
+
+a<- ggplot(petit_rat_cnt, aes(expiryDate, n))+
+  geom_line()+
+  theme_classic()+
+  labs(title="자영업 소상공인에 대한  청원 건수 변화")+
+  theme(plot.title = element_text(hjust = 0.6, face='bold', size = 15))+
+  geom_vline(xintercept = as.numeric(petit_rat_cnt$expiryDate[112]),color =  "red", linetype = 2)+
+  theme(text = element_text(family = "NanumGothic"))
+
+b<- ggplot(petit_rat_cnt, aes(expiryDate, agreeSum))+
+  geom_line()+
+  theme_classic()+
+  labs(title="자영업 소상공인에 대한  청원동의 인원수의 변화")+
+  theme(plot.title = element_text(hjust = 0.6, face='bold', size = 15))+
+  geom_vline(xintercept = as.numeric(petit_rat_cnt$expiryDate[112]),color =  "red", linetype = 2)+
+  theme(text = element_text(family = "NanumGothic"))
+
+c<- ggplot(petit_rat_cnt, aes(expiryDate, ratCnt))+
+  geom_line()+
+  theme_classic()+
+  labs(title="자영업 소상공인에 대한  청원 건수 대비 청원동의 인원수의 변화")+
+  theme(plot.title = element_text(hjust = 0.6, face='bold', size = 15))+
+  geom_vline(xintercept = as.numeric(petit_rat_cnt$expiryDate[112]),color =  "red", linetype = 2)+
+  theme(text = element_text(family = "NanumGothic"))
+
+grid.arrange(a,b,c, nrow=3, ncol=1)
+```
+
+코로나 첫 확진자 발생일 2020년 1/19 이후 처음으로 자영업 청원이 업로드된 2020년 1월 22일을 경계로 설정하였다. 
+
+### 3.3 불용어 사전 불러오기
+
+출처 : https://bab2min.tistory.com/544
+
+```{r}
+# 불용어 사전
+dic <- read.table(file = "한국어불용어100.txt",
+                  sep = "\t",
+                  fileEncoding = "UTF-8")
+dic <- dic[ , 1] %>% as.character()
+
+# 사용자 정의 불용어 사전
+delDic <- readLines("del.txt")
+```
+
+### 3.4 형태소 분석
+
+NLP4kec 패키지에 있는 r_parser_r 함수를 사용해 형태소 분석을 진행
+
+```{r}
+# 형태소 분석 함수
+textAnalysis <- function(period, pattern){
+  df <- period[grep(pattern, period$title),3]
+  
+  ## 텍스트 공백 제거, 추후 형태소 분석기로 다시 구분
+  df<- sapply(df, str_remove_all, '\\s+')
+  df<- as.data.frame(df, stringsAsFactors = FALSE)
+  
+  df <- df[which(nchar(x=df$title)>5),] %>% as.data.frame
+  colnames(df) <- "title"
+
+  # 형태소 분석
+  # 사용자 정의 감성 사전 추가하여 사용
+  Parsed_cat<- r_parser_r(df$title, language= "ko", korDicPath="customDic.txt")
+  
+  # corpus생성
+  corp<- VCorpus(VectorSource(Parsed_cat))
+  
+  # 특수문자 & 숫자 & 불용어 제거
+  corp<- tm_map(corp, removePunctuation)
+  corp<- tm_map(corp, removeNumbers) 
+  
+  corp<- tm_map(corp, removeWords, words = c(delDic, dic))
+  
+  # 문서 단어 행렬 생성 후 단어들에 가중치 부여
+  dtmTfIdf <- DocumentTermMatrix(x = corp, 
+                                 control = list(removeNumbers = TRUE, 
+                                                wordLengths = c(2, Inf),
+                                                weighting = function(x) weightTfIdf(x, normalize = TRUE)))
+
+  # dtm 차원축소
+  dtmTfIdf <- removeSparseTerms(x =  dtmTfIdf, sparse = as.numeric(x = 0.99))
+
+  # dtmTfIdf : 가중치를 부여한 문서 단어 행렬
+  # Parsed_cat : 형태소 분석 결과값
+  # 
+  return(list(dtmTfIdf, Parsed_cat ,df))
+}
+
+# 형태소 분석
+beforeTextData <- textAnalysis(beforeCovid, pattern)
+# 가중치를 부여한 문서 단어 행렬
+beforeDtmTfIdf <- beforeTextData[1]
+# 형태소 분석 결과값
+beforeWords <- beforeTextData[2] 
+# bcdf <- beforeTextData[[3]]
+
+afterTextData <- textAnalysis(afterCovid, pattern)
+afterDtmTfIdf <- afterTextData[1]
+afterWords <- afterTextData[2]
+# acdf <- afterTextData[3]
+```
+
+### 3.5 워드클라우드
+
+형태소 분석으로 구한 단어 빈도수를 가지고 워드클라우드를 그린다.
+
+```{r}
+# 워드클라우드 그리는 함수 (문서 단어 행렬을 이용하여 그린다)
+wc <- function(dtmTfIdf){
+  # 단어 빈도수 합치기
+  wordsFreq <- dtmTfIdf %>% as.matrix() %>% colSums()
+  wordsFreq <- wordsFreq[order(wordsFreq, decreasing = TRUE)]
+  
+  # 단어 빈도표 생성
+  wordDf <- data.frame(
+                  word = names(x = wordsFreq),
+                  freq = wordsFreq,
+                  row.names = NULL) %>% 
+                  arrange(desc(x = freq))
+  
+  # 워드클라우드 그리기
+  wordcloud2(wordDf,
+           fontFamily = 'NanumGothic',
+           minRotation = -pi/6, 
+           maxRotation = -pi/6,
+           rotateRatio = 1,
+           shape = "rectangle",
+           color = brewer.pal(8, "Dark2"))
+}
+```
+
+#### 3.5.1 코로나 이전 워드클라우드
+
+```{r message=F}
+wc(beforeDtmTfIdf[[1]])
+```
+
+#### 3.5.2 코로나 이후 워드클라우드
+
+```{r message=F}
+wc(afterDtmTfIdf[[1]])
+```
+
+### 3.6 network map
+```{r}
+# 상관행렬 생성 함수
+getCorTerms <- function(dtmTfIdf){
+  corTerms <- dtmTfIdf %>% as.matrix() %>% cor()  
+  return(corTerms)
+}
+# 코로나 이전 상관 행렬
+beforeCorTerms <- getCorTerms(beforeDtmTfIdf[[1]])
+# 데이터 형식 보기
+glimpse(beforeCorTerms) #
+
+# 코로나 이후 상관 행렬
+afterCorTerms <- getCorTerms(afterDtmTfIdf[[1]])
+# 데이터 형식 보기
+glimpse(afterCorTerms) #
+
+# 네트워크 객체 추출
+dim(beforeCorTerms) #
+
+getNetTerms <- function(corTerms, range){
+  # 상관관계 일정 수치 이상인 데이터만 사용
+  # 코로나 이전은 0.2 코로나 이후는 0.45
+  corTerms[corTerms <= range] <- 0
+  netTerms <- network(x = corTerms, directed = FALSE) # network::network
+  return(netTerms)  
+}
+
+beforeNetTerms <- getNetTerms(beforeCorTerms, 0.2)
+afterNetTerms <- getNetTerms(afterCorTerms, 0.2)
+
+# 매개중심성 계산
+getBetweennessCentrality <- function(netTerms){
+  btnTerms <- betweenness(netTerms) # sna::betweenness
+  btnTerms[1:10] #
+  
+  netTerms %v% 'mode' <- ifelse(test = btnTerms >= quantile(x = btnTerms, probs = 0.90, na.rm = TRUE),
+                                yes = 'Top',
+                                no = 'Rest')
+  return(netTerms)
+}
+
+beforeNetTerms <- getBetweennessCentrality(beforeNetTerms)
+afterNetTerms <- getBetweennessCentrality(afterNetTerms)
+
+# 네트워크 맵 그리기
+nodeColors <- c('Top' = 'gold', 'Rest' = 'lightgrey')
+drawNetworkMap <- function(netTerms, corTerms, period){
+  set.edge.value(netTerms, attrname = 'edgeSize', value = corTerms * 3)
+  ggnet2(
+      net = netTerms,
+      mode = 'fruchtermanreingold',
+      layout.par = list(cell.jitter = 0.001),
+      size.min = 3,
+      label = TRUE,
+      label.size = 3,
+      node.color = 'mode',
+      palette = nodeColors,
+      node.size = sna::degree(dat = netTerms), # sna::degree
+      edge.size = 'edgeSize') +
+      labs(title = paste0("코로나 ",period," 자영업,소상공인 단어-네트워크맵")) # GGally::ggnet2
+}
+
+drawNetworkMap(beforeNetTerms, beforeCorTerms, "이전")
+drawNetworkMap(afterNetTerms, afterCorTerms, "이후")
+```
+
+## 4. 감성 분석
+
+게시글의 감성을 알기 위해 'KNU 한국어 감성사전'을 사용하였다.
+
+출처 : https://github.com/park1200656/KnuSentiLex
+
+```{r fig.width=16, fig.height=7}
+# 함수로 만들자
+# 감성사전 불러오기
+positive <- readLines("positive.txt")
+positive <- positive[-1]
+negative <- readLines("negative.txt")
+negative <- negative[-1]
+
+# 점수 부여
+positive <- data.frame(positive, rep(1,length(positive)))
+colnames(positive) <- c("word","score")
+negative <- data.frame(negative, rep(-1,length(negative)))
+colnames(negative) <- c("word","score")
+
+# 감성 사전 하나로 통합
+lexicon <- bind_rows(positive, negative) 
+
+# 감성 점수 매칭하기
+matchScore <- function(words){
+  df_token <- words %>% as.data.frame
+  colnames(df_token)[1] <- "title"
+  
+  # tidytext 패키지에 unnest_tokens() 를 사용해 토크나이징
+  df_token <- unnest_tokens(df_token, input = title,
+                          output = word,
+                          token = "words",
+                          drop = F)
+  
+  # 토큰화 시킨 단어들과 감성 사전에 단어들을 매칭해서 점수 부여
+  df_token <- df_token %>%
+    left_join(lexicon, by = "word") %>%
+    mutate(polarity = ifelse(is.na(score), 0, score))
+  
+  # 레이블 주기
+  df_token <- df_token %>% mutate(sentiment = ifelse(polarity == 1, "positive", ifelse(polarity == -1, "negative", "neutral")))
+
+  return(df_token)
+}
+
+# 감성 분석
+sentiAnalysis <- function(words){
+  # 감성 점수 매칭하기
+  df <- matchScore(words)
+  
+  # 전체 감성 점수 구하기
+  score_df <- df %>%
+    group_by(sentiment) %>%
+    summarise(score = sum(polarity))
+  
+  score_df$score <- abs(score_df$score)
+  score_df <- score_df[-2,]
+  score_df$ratio <- round(score_df$score / sum(score_df$score), 4) * 100
+  
+  ratio <- paste0(score_df$sentiment, "\n","(",score_df$ratio, "%",")")
+  fig <- score_df %>% ggpie("ratio", 
+                         label = ratio, 
+                         fill = "sentiment", 
+                         font.family = "NanumGothic",
+                         color = "white",
+                         lab.pos ="in",
+                         lab.font = c(5, "white"),
+                         palette = c("#ff4000", "#0080ff")) + rremove("legend")
+  
+  # df : 감성 점수가 포함된 게시글 
+  # fig : 파이 차트 데이터
+  return(list(df, fig))
+}
+
+# 감성 분석 그래프
+beforeFig <- sentiAnalysis(beforeWords)[[2]] 
+afterFig <- sentiAnalysis(afterWords)[[2]]
+
+# 감성 점수표
+getScoreTable <- function(period, periodLabel){
+  sentiScore <- sentiAnalysis(period)[[1]]
+  scoreTable <- sentiScore %>% 
+    group_by(title) %>% 
+    summarise(score=sum(polarity))
+  
+  attach(sentiScore)
+  sentiScoreTable <- bind_cols(sentiment, polarity, rep(periodLabel, length(sentiment)))
+  colnames(sentiScoreTable) <- c("sentiment","score","period")
+  detach(sentiScore)
+  return(list(sentiScoreTable, scoreTable))
+}
+beforeScoreTable <- getScoreTable(beforeWords, "before")
+afterScoreTable <- getScoreTable(afterWords, "after")
+
+beforeSentiScoreTable <- beforeScoreTable[[1]]
+afterSentiScoreTable <- afterScoreTable[[1]]
+
+# 게시글 제목과 감성 점수 테이블
+beforeTitleAndScore <- beforeScoreTable[[2]]
+afterTitleAndScore <- afterScoreTable[[2]]
+
+# 그래프 출력
+ggarrange(beforeFig, afterFig, labels = c("before covid 19", "after covid 19"), hjust = c(-2.3,-2.7), vjust = 3) %>% 
+  annotate_figure(top=text_grob("코로나 전후 청원 게시글 감성", face="bold", family="NanumGothic", size=24))
+```
+
+## 5. 추론통계
+
+### 5.1 가설 설정
+
+$귀무가설 : 자영업,\ 소상공인\ 관련\ 국민\ 청원\ 게시글의\ 감성이\ 코로나\ 이전과\ 이후에\ 차이가\ 없다$
+
+$대립가설 : 자영업,\ 소상공인\ 관련\ 국민\ 청원\ 게시글의\ 감성이\ 코로나\ 이전보다\ 이후에\ 더\ 나쁘다$
+
+### 5.2 정규성 검정
+
+```{r}
+par(mfrow=c(2,2))
+# 코로나 전후 감성점수 히스토그램
+hist(beforeTitleAndScore$score, main = "before covid histogram", xlab = "sentiment score")
+hist(afterTitleAndScore$score, main = "after covid histogram", xlab = "sentiment score")
+
+# 코로나 전후 qqplot
+qqnorm(beforeTitleAndScore$score, main = "before covid qqplot")
+qqline(beforeTitleAndScore$score, col="green")
+qqnorm(afterTitleAndScore$score, main = "after covid qqplot")
+qqline(afterTitleAndScore$score, col="green")
+```
+
+코로나 이전과 이후의 감성점수에 대해 shapiro.test를 통해 정규성을 검증해 보았다.
+
+```{r}
+shapiro.test(beforeTitleAndScore$score)
+shapiro.test(afterTitleAndScore$score)
+```
+
+두 데이터 모두 p-value가 0.05보다 낮으므로 정규분포를 따르지 않는다.
+
+### 5.3 두 모집단의 중심 차이에 대한 비모수 검정
+
+데이터가 정규분포를 따르지 않아 t-test를 사용하지 못하여 Wilcoxon rank sum test를 사용한다.
+
+```{r}
+# 코로나 이전 이후 평균 감성 점수
+mean(beforeTitleAndScore$score)
+mean(afterTitleAndScore$score)
+```
+
+코로나 이후 평균 감성 점수가 코로나 이전 평균 감성 점수보다 더 작다.
+
+감성점수가 작을 수록 감성이 나쁘다.
+
+즉 코로나 이후에 감성이 더 나쁘다고 할 수 있다.
+
+통계기법을 사용하여 이 차이가 유의한지 알아보자.
+
+```{r}
+wilcox.test(beforeTitleAndScore$score, afterTitleAndScore$score, alternative="greater")
+```
+
+p-value가 0.03566으로 p-value \< 0.05 이므로 귀무가설은 기각되고 대립가설이 채택되었다.
+
+즉 자영업, 소상공인 관련 국민 청원 게시글의 감성이 코로나 이전보다 이후에 더 나빠졌다고 해석할 수 있다.
