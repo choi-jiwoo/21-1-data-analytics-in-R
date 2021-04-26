@@ -44,7 +44,7 @@ library(tidytext)
 
 ### 1.2 데이터 크롤링
 
-
+국내 코로나 확진자가 나온 시점에서 1년전인 2019/1/20 부터 1년 후인 2021/1/20 까지의 국민 청원 게시글에 청원번호(id) , 청원 카테고리(category), 청원 제목(title), 청원 만료 날짜(expiryDate), 청원 동의수(numOfAgrees) 총 5가지 데이터를 수집하였다. 총 85,856개의 청원 게시글을 수집할 수 있었다. 
 
 ```{r}
 url = "http://www1.president.go.kr/petitions/?c=0&only=2&page="
@@ -112,6 +112,8 @@ write.csv(df,"df.csv", row.names = F)
 
 ### 1.3 데이터 정제
 
+크롤링은 셀레니움을 사용해 진행 하였으며 수집한 데이터는 데이터프레임에 저장하고 날짜 데이터와 청원 동의수 데이터는 각각 날짜 타입의 데이터, 정수 타입의 데이터로 변환하여 주었다. 그리고 2020/1/20일 기준으로 코로나 이전과 이후 데이터프레임을 생성하여 데이터를 두개로 나누었다. 코로나 이전 데이터는 총 75,162개의 청원 게시글이 있고, 코로나 이후 데이터는 총 10,694개의 청원 게시글이 있다. 코로나 이전 1년동안 게시된 청원의 갯수가 코로나 이후 1년동안 게시된 청원의 갯수보다 대 7.5배 차이가 남을 알 수 있다. 
+
 ```{r include=F}
 afterCovid<-read_csv("data/after_covid_petition.csv")
 beforeCovid<-read_csv("data/before_covid_petition.csv")
@@ -148,7 +150,11 @@ afterCovid %>% head %>% kbl(caption="afterCovid") %>% kable_styling
 
 ## 2. 기술통계
 
+수집한 데이터를 그래프들을 통해 코로나 이전과 이후 데이터가 어떤 모습인지 알아보았다. 
+
 ### 2.1 청원 동의수 top 5
+
+코로나 이전에 동의수를 가장 많이 받은 청원 5개와 코로나 이후에 동의수를 가장 많이 받은 청원 5개를 확인할 수 있었다. 코로나 이전에는 정치에 관한 청원들이 동의를 많이 얻었음을 알 수 있다. 코로나 이후에는 n번방 사건에 대한 청원과 정치와 관련된 청원들이 많은 동의를 얻었다. 
 
 ```{r}
 # 카테고리만 추출하기
@@ -193,6 +199,8 @@ grid.arrange(bca, aca, ncol=2, top=title)
 
 ### 2.3 카테고리별 비율
 
+국민 청원 게시글에는 게시자가 지정할 수 있는 카테고리가 17가지 있다. 카테고리별로 청원 게시글 갯수와 전체 청원 게시글 갯수와의 비율을 구하여 아래 그래프를 사용하여 나타냈다. 
+
 ```{r}
 # 코로나 이전
 b4Ratio <- beforeCovid %>% 
@@ -224,8 +232,9 @@ acBcRatioLong %>% ggbarplot("category", "ratio",
                 ggpar(x.text.angle = 45, font.family=font) %>% 
                   annotate_figure(top=text_grob("코로나 이전과 이후 카테고리별 비율", face="bold", family=font, size=16))
 ```
+'안전/환경' 카테고리의 비율이 굉장히 높아진걸 알 수 있고 그에 반해 '농산어촌' 카테고리는 비율이 많이 줄은것을 알 수 있다. 코로나로 인해 '안전/환경' 카테고리에 이전보다 많은 청원들이 올라왔을 것이라 생각된다.
 
-자영업 소상공인 키워드로 분석을 진행하고자 한다
+분석은 코로나 전과 후로 자영업 소상공인 키워드로 추출한 데이터에 어떠한 차이가 있는지 알아보고자 한다
 
 ## 3. 텍스트 분석
 
@@ -317,6 +326,8 @@ ggplot(total_df, aes(x= category, y= relative, fill=period))+
 이는 자영업/소상공인 키워드를 가진 청원의 성격이 일반적인 일자리 개념에서 행정적인 개념으로 옮겨갔음을 의미한다.
 
 장기화 되가는 사회적 거리두기 방침과 5인 이상 사적모임 금지, 그리고 단축 영업 같은 행정조치로 인해 발생한 상황으로 해석된다.
+
+또한 '자영업/소상공인'과 관련된 청원 게시글에 어떤 차이가 있는지 그래프를 통해 알아보았다. 먼저 코로나 이전과 이후로 청원 동의수의 차이를 알아보았고, 다음으로 코로나 이전과 이후로 청원 갯수의 차이를 알아보았다.
 
 ```{r fig.height=5}
 # 동의수 차이
@@ -467,7 +478,9 @@ afterWords <- afterTextData[2]
 
 ### 3.5 워드클라우드
 
-형태소 분석으로 구한 단어 빈도수를 가지고 워드클라우드를 그린다.
+워드클라우드는 빈도수가 높은 순서대로 글자의 크기와 색이 결정되어 어떤 단어들이 데이터에 많이 반복되어 사용되고 있는지 알 수 있다.
+
+형태소 분석을 통해 생성한 문서 단어 행렬 데이터를 이용하여 워드클라우드를 그려보았다. 
 
 ```{r}
 # 워드클라우드 그리는 함수 (문서 단어 행렬을 이용하여 그린다)
@@ -505,6 +518,10 @@ wc(beforeDtmTfIdf[[1]])
 ```{r message=F}
 wc(afterDtmTfIdf[[1]])
 ```
+
+대체적으로 부정적인 단어가 많이 나타나는것을 알 수 있다. 
+
+코로나 이전과 이후의 워드클라우드에서 찾아볼 수 있는 차이점은 코로나 이후에는 "지원"이란 단어의 크기가 커졌고, "정책", "긴급'', "노래방" 등 의 단어들이 새로 나타났다. 
 
 ### 3.6 network map
 ```{r}
@@ -579,6 +596,12 @@ drawNetworkMap(afterNetTerms, afterCorTerms, "이후")
 
 출처 : https://github.com/park1200656/KnuSentiLex
 
+감성사전을 불러와서 긍정사전에는 단어당 1점, 부정사전에서는 단어당 -1점을 부여 하였다. 이후 형태소 분석을 해서 나온 데이터를 토크나이징하여 단어로 쪼갠다음 각 단어에 대해 감성점수를 부여 하였다. 
+
+단어 별로 감성점수를 구한 후 그걸 다시 하나의 문장으로 합치는 과정에서 단어당 감성점수를 모두 더하여 청원 게시글 한개의 감성 점수를 구하였다.
+
+코로나 이전과 이후의 감성 점수를 비교하기 위해 긍부정 점수를 비율로 나타낸후 파이차트를 그려보았다.
+
 ```{r fig.width=16, fig.height=7}
 # 함수로 만들자
 # 감성사전 불러오기
@@ -626,7 +649,9 @@ sentiAnalysis <- function(words){
     group_by(sentiment) %>%
     summarise(score = sum(polarity))
   
+  # 절댓값을 취해 감성점수의 총합을 구할 수 있게 함
   score_df$score <- abs(score_df$score)
+  # 중립 점수 제거
   score_df <- score_df[-2,]
   score_df$ratio <- round(score_df$score / sum(score_df$score), 4) * 100
   
@@ -677,7 +702,17 @@ ggarrange(beforeFig, afterFig, labels = c("before covid 19", "after covid 19"), 
   annotate_figure(top=text_grob("코로나 전후 청원 게시글 감성", face="bold", family="NanumGothic", size=24))
 ```
 
+코로나 이전에는 부정적인 감성이 70.4%를 차지했고 긍정적인 감성이 29.6%를 차지했다.  
+
+코로나 이후에는 부정적인 감성이 73.76% 이고 긍정적인 감성이 26.24%이다. 
+
+부정적인 감성이 코로나 전후로는 약 3% 증가하였으며 긍정적인 감성은 약 3% 감소했다. 이제 이 차이가 통계적으로 유의한 차이인지 검정해보고자 한다.
+
 ## 5. 추론통계
+
+감성분석을 통해 구한 게시글별 감정 점수를 사용하여 코로나 전후로 국민 청원 게시글의 감성이 더 나빠졌는지 알아보고자 한다. 
+
+
 
 ### 5.1 가설 설정
 
@@ -686,6 +721,8 @@ $귀무가설 : 자영업,\ 소상공인\ 관련\ 국민\ 청원\ 게시글의\ 
 $대립가설 : 자영업,\ 소상공인\ 관련\ 국민\ 청원\ 게시글의\ 감성이\ 코로나\ 이전보다\ 이후에\ 더\ 나쁘다$
 
 ### 5.2 정규성 검정
+
+감성점수 데이터에 대한 정규성 검정을 진행하였다. qqplot과 히스토그램을 그려보고, 코로나 이전과 이후 청원 게시들의 감성점수들이 정규분포를 따르는지 대해 shapiro.test를 통해서도 정규성을 검증해 보았다. 
 
 ```{r}
 par(mfrow=c(2,2))
@@ -700,8 +737,6 @@ qqnorm(afterTitleAndScore$score, main = "after covid qqplot")
 qqline(afterTitleAndScore$score, col="green")
 ```
 
-코로나 이전과 이후의 감성점수에 대해 shapiro.test를 통해 정규성을 검증해 보았다.
-
 ```{r}
 shapiro.test(beforeTitleAndScore$score)
 shapiro.test(afterTitleAndScore$score)
@@ -713,19 +748,7 @@ shapiro.test(afterTitleAndScore$score)
 
 데이터가 정규분포를 따르지 않아 t-test를 사용하지 못하여 Wilcoxon rank sum test를 사용한다.
 
-```{r}
-# 코로나 이전 이후 평균 감성 점수
-median(beforeTitleAndScore$score)
-median(afterTitleAndScore$score)
-```
-
-코로나 이후 평균 감성 점수가 코로나 이전 평균 감성 점수보다 더 작다.
-
-감성점수가 작을 수록 감성이 나쁘다.
-
-즉 코로나 이후에 감성이 더 나쁘다고 할 수 있다.
-
-통계기법을 사용하여 이 차이가 유의한지 알아보자.
+코로나 이후의 감성점수가 더 나빠졌으니 wilcox.test의 alternative에 "greater"이라는 값을 주어 우측검정을 실시한다.
 
 ```{r}
 wilcox.test(beforeTitleAndScore$score, afterTitleAndScore$score, alternative="greater")
