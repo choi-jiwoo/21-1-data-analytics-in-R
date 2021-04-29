@@ -1,54 +1,20 @@
-# covid19-petitons-analysis
-코로나19 팬데믹 이전 청와대 국민 청원과 이후 청원의 유형 변화 분석
+# 21-1 데이터 애널리틱스 - R기반 통계 중간보고서
 
-21-1 데이터 애널리틱스 - R기반 통계 중간보고서
+### 국민 청원 게시글 데이터를 활용한 감성 연구
 
-## Github 시작하기
-참고 : https://falsy.me/%EA%B9%83%ED%97%88%EB%B8%8C-%EC%8B%9C%EC%9E%91%ED%95%98%EA%B8%B0-1-%EC%A0%80%EC%9E%A5%EC%86%8C-%EB%A7%8C%EB%93%A4%EA%B8%B0-push-%ED%95%98%EA%B8%B0/
+코로나19 이후 자영업 관련 청원들의 감성 차이에 대한 분석
 
-## Github으로 협업
-참고 : https://gmlwjd9405.github.io/2017/10/27/how-to-collaborate-on-GitHub-1.html
 
-### • 처음 설정
-1. git clone [중앙 원격 저장소 URL]
 
-처음 한번만 git clone 명령어로 중앙 원격 저장소를 자신의 로컬 저장소로 복제
+국민 청원 게시판에서 크롤링해온 데이터 변수 설명
 
-2. git checkout -b [branch name]
+| Header        | Definition    |
+| :------------ | ------------- |
+| `id`          | 청원 번호     |
+| `category`    | 청원 분류     |
+| `title`       | 청원 제목     |
+| `expiryDate`  | 청원 만료일   |
+| `numOfAgrees` | 청원 참여인원 |
 
-**모든 코드 작업은 생성한 자신의 branch에서 이뤄지고 나중에 master에 병합**
+출처 : https://www1.president.go.kr/petitions
 
-코드 추가를 위해 작업할 branch 생성 후 이동
-
-### • 코드 작업
-1. git add
-
-branch에 생성/수정한 코드를 commit
-
-2. git push
-
-자신이 작업한 branch를 중앙 원격 저장소에 올리기
-
-### • 코드 작업물 병합
-
-참고 : https://wayhome25.github.io/git/2017/07/08/git-first-pull-request-story/
-
-1. pull request
-
-깃허브 repository 페이지에서 작업한 코드에 대해 master branch에 병합 요청
-
-2. merge
-
-깃허브 repository 페이지에서 병합 요청된 branch 들을 master branch와 병합
-
-### • 코드 작업전 중앙 원격 저장소와 자신의 로컬 저장소 동기화
-
-1. git checkout master
-
-master branch로 이동
-
-2. git pull origin master
-
-**코드 작성 전 필수!! 동기화가 안되어 있으면 충돌 발생**
-
-중앙 원격 저장소에 변경사항이 생기면 자신의 로컬 저장소를 동기화
