@@ -180,14 +180,14 @@ while(length(newUrl) > 0){
 }
 remDr$close()
 # 파일 내보내기
-write.csv(df,"df.csv", row.names = F)
+write.csv(df,"data/petition_data.csv", row.names = F)
 ```
 
 ## 2.3 데이터 정제
 
 ```{r}
 # 데이터 불러오기
-df <- read_csv("data/df.csv")
+df <- read_csv("data/petition_data.csv")
 # 중복 관측값 제거
 df <- unique(df)
 colName <- c("id", "category", "title", "expiryDate", "numOfAgrees")
@@ -202,10 +202,6 @@ df$numOfAgrees <- gsub("\\W","",df$numOfAgrees) %>% as.integer
 # 코로나 이전과 이후 데이터로 분리
 beforeCovid <- df[which(df$expiryDate<"2020-1-20"),]
 afterCovid <- df[which(df$expiryDate>="2020-1-20"),]
-
-# write.csv(df, "petition_data.csv", row.names = F)
-# write.csv(beforeCovid, "before_covid_petition_data.csv", row.names = F)
-# write.csv(afterCovid, "after_covid_petition_data.csv", row.names = F)
 
 # 코로나 이전 데이터
 beforeCovid %>% str
