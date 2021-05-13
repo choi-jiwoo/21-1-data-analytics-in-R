@@ -4,9 +4,13 @@
 
 코로나19 이후 자영업 관련 청원들의 감성 차이에 대한 분석
 
+`21_1_Data_Analytics_in_R_Midterm_Report.Rmd`
 
+</br>
 
-국민 청원 게시판에서 크롤링해온 데이터 변수 설명
+### 국민 청원 게시판에서 크롤링한 데이터 변수
+
+`petition_data.csv`
 
 | Header        | Definition    |
 | :------------ | ------------- |
