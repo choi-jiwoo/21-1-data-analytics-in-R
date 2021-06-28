@@ -2,7 +2,7 @@
 
 코로나19 이후 자영업 관련 청원들의 감성 차이에 대한 분석
 
-`21_1_Data_Analytics_in_R_Midterm_Report.Rmd`
+`21_1_Data_Analytics_in_R_midterm_report.Rmd`
 
 </br>
 
