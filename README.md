@@ -1,14 +1,16 @@
-# 국민 청원 게시글 데이터를 활용한 감성 연구
+# 국민 청원 게시글 데이터를 활용한 감성 분석
+
+## 분석보고서
 
 코로나19 이후 자영업 관련 청원들의 감성 차이에 대한 분석
 
 `21_1_Data_Analytics_in_R_midterm_report.Rmd`
 
-</br>
+## 데이터
 
-### 국민 청원 게시판에서 크롤링한 데이터 변수
+📁 국민 청원 게시판에서 크롤링한 데이터
 
-`petition_data.csv`
+`data/petition_data.csv`
 
 | Header        | Definition    |
 | :------------ | ------------- |
