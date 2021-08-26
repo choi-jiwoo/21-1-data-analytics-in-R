@@ -1,12 +1,12 @@
-### 국민 청원 게시글 데이터를 활용한 감성 분석
+## 국민 청원 게시글 데이터를 활용한 감성 분석
+
+### 분석 보고서 
+
+`21_1_Data_Analytics_in_R_midterm_report.Rmd`
 
 보고서 링크를 걸어두었으니 자세한 분석 내용은 이곳에서 확인해 보실 수 있습니다.
 
 https://rpubs.com/cho2jiwoo/802248
-
-**분석 보고서 원본 파일**
-
-`21_1_Data_Analytics_in_R_midterm_report.Rmd`
 
 ### 데이터
 
