@@ -1,0 +1,1187 @@
+---
+title: "주성분 회귀분석을 통한 서울시 골목상권별 카페 매출액 분석"
+subtitle : "코로나19 전후 카페 매출에 영향을 주는 요인에 대한 분석"
+author: 
+- 영어영문 이서희 201721600
+- e비즈니스 전아현 201921528
+- e비즈니스 최지우 201723375
+date: "6/17/2021"
+output: html_document
+---
+
+# i. 1 페이지 리포트
+
+저희 조는 이번 기말 보고서의 주제를 ‘코로나 전과 후 서울시 우리마을가게 상권배후지 데이터를 이용하여, 서울시 상권들 중 골목상권 별 카페의 총 매출액의 예측’으로 정했습니다. 
+저희 조는 지난 중간 보고서 때 ‘코로나 전과 후 청와대 국민 청원 중 자영업자들의 청원에 유의한 감성차이가 있는가’로 분석을 했습니다. 이번 기말 분석 때 중간 분석 때의 주제와 연결되는 주제로 정했습니다. 이와 같이 정한 이유는, 중간 분석 때 주제와 연관되면서 좀 더 세부적인 분석을 진행하고 싶다는 생각이 들었기 때문입니다. 중간 분석 때는 코로나 19 발생 이전과 이후의 자영업자들 청원 감성에 유의한 차이가 있는지를 알아냈다면, 이번 기말 분석 때는 서울시 상권들 중 골목상권 별 카페의 총 매출액에 어느 정도의 차이가 있는지와 카페 총 매출액에 영향을 미치는 독립변수들이 코로나 발생 전후로 차이가 있는 지 알아보았습니다. 
+사용한 데이터는 서울열린데이터 광장에 공시되어 있는 서울시 상권데이터 중 국내 코로나 확진자가 나온 시점에서 1년 전인 2019년부터 1년 후인 2020년까지의 데이터를 수집하였습니다. 저희 조는 <상권 배후지-소득분위>, <상권 배후지-집객시설>, <상권 배후지-상권변화>, <상권 배후지-매출금액>, <상권 배후지-유동인구>, <상권 배후지-상주인구>, <상권–직장인수>로 총 7가지 데이터를 수집하였습니다. 
+수집한 데이터에 대한 EDA에 대해서는 필요하지 않은 EDA들을 삭제와 수정하여 최대한 필요한 EDA들로만 생성을 했습니다. 그리고 EDA는 모델 구축 후에 시각화 부분에 대한 참고자료 목적으로 부록으로 따로 마지막 부분에 넣었습니다. 얻은 인사이트를 토대로 매출액에 영향을 끼칠 것으로 판단되는 변수들을 추렸습니다. 이후 추린 변수들을 바탕으로 다중회귀분석을 수행함으로써 어떤 변수들이 매출액에 영향을 끼쳤는지 알아보았습니다.
+이번 분석의 한계로는 homoscedasticity인 등분성 가정을 만족하지 못하여, 높은 신뢰도의 결과를 내지 못했다는 점입니다. 그리고 상권의 예상 매출액만을 대상으로 분석을 진행했다는 것입니다. 실제로 상권의 흥망에 영향을 주는 변수들을 정확하게 찾기 위해선 상권의 지출액 등 여러가지 요소 또한 고려해 봐야할 것입니다. 
+
+
+# ii. 서론
+
+코로나19 발생 이후 많은 자영업자들이 경제적으로 큰 타격을 입고 힘들어졌습니다. 저희 조가 중간 보고서에서도 코로나 19 발생 이전과 비교한 코로나 19 발생 이후의 자영업자들의 감성을 분석했습니다. 저희 15조의 중간 보고서의 내용이 완전히 모든 것을 설명하진 않았지만, 자영업자들의 감성이 코로나 발생 19 이전보다 이후에 더 나빠졌던 것을 발견했습니다. 그래서 저희 조는 중간 보고서 때 분석하였던 주제와 연관이 있으면서 조금 더 세부적으로 분석을 진행할 수 있는 주제가 무엇이 있을 까 고민을 하였습니다. 자영업 분야들 중에서 카페 업종을 선택한 이유는, 많은 자영업 분야들 중에서 자영업자들이 창업하는 비율을 봤을 때, 특히 카페 업종을 창업하는 비율이 급증하였다는 이야기를 많이 접했기 때문이었습니다. 특히나 젊은 층은 공부를 하기 위해서나, 지인들 과의 만남 등을 위해 더더욱 카페를 많이 방문하기도 합니다. 그래서 저희 조는 서울시 골목상권 별 카페의 총 매출액의 주제가 요즘 시기와 잘 맞는 주제이기 때문에 조금 더 재밌게 분석할 수 있을 것 같다고 생각했습니다. 저희 15조가 이번 분석 주제에서 상권 데이터를 사용한 이유는, 카페를 창업할 때 상권이 매우 중요한 요소이기 때문이었습니다. 그래서 상권에 관한 데이터를 수집하여 분석 데이터로 사용하였습니다. 그래서 수집한 서울시 골목상권 별 상주인구, 직장인 수, 집객 시설 등의 상권 데이터를 바탕으로 어떤 변수들이 총 매출에 영향을 주는 지 알아보고자 하였습니다. 
+이러한 이유로 저희 팀은 서울시 우리마을가게 상권 데이터를 이용하여 분석을 진행하기로 하였습니다. 코로나19가 서울시에서 카페를 운영하고 있는 자영업자 분들에게 얼만큼 영향을 주었는지 카페 총매출액에 생긴 영향에 대해서 알아보고자, 코로나19 전후로 서울시 우리마을가게 상권 데이터들을 이용해 분석을 진행했습니다. 코로나 19 발생 전과 이후에 서울시 카페 자영업자들의 총 매출액에 많은 영향이 생겼을 것으로 예상이 되는데, 그것을 이번 분석을 통해 알아보고자 합니다.
+
+위와 같은 데이터들을 수집한 후, 수집한 데이터 파일 중에서 독립변수로 사용할 변수들과, 종속변수로 사용할 변수들에 대한 전처리를 수행했고 코로나 발생후인 2020년 2- 4분기까지의 데이터와 마찬가지로 2019년 2-4분기 데이터만을 필터링하여 사용했습니다.
+
+
+# iii. 분석 주제 (연구문제 설정)
+
+## iii.i 서울시 골목상권 별 카페 총 매출액에 관련된 주제를 선정한 이유 & 목표
+
+```{r include=F}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+options(scipen = 10)
+
+library(showtext)
+font_add_google(name = "Nanum Gothic", family = "nanumgothic")
+showtext_auto()
+```
+
+## iii.ii 역할 분담
+
+공통
+
+-	데이터 수집 및 정제
+
+-	맡은 부분 보고서 작성
+
+- 주성분 분석, 다중회귀 분석
+
+이서희
+
+-	EDA(히스토그램, 파이그래프, 막대그래프)
+
+-	다중회귀분석
+
+전아현
+
+-	EDA(산점도)
+
+-	보고서 취합 및 편집
+
+최지우
+
+- 주성분분석
+
+-	EDA(지도 시각화)
+
+-	코드 통합
+
+------------------------------------------------------------------------
+
+## 1. 데이터
+
+분석을 위해 서울 열린데이터 광장에서 제공하는 "서울시 우리마을가게 상권분석서비스"의 상권배후지 매출액 데이터와 다른 6개 데이터를 사용하였다. 7개의 데이터마다 가지고 있는 변수들중 의미 없는것들은 제외하고 총 61개의 변수들을 선택하였다.
+
+| 변수                        | 데이터명     |
+|-----------------------------|--------------|
+| estimatedSales              | 추정매출     |
+| estimatedFloatingPopulation | 추정유동인구 |
+| settledPopulation           | 상주인구     |
+| numOfEmployee               | 직장인구     |
+| districtState               | 상권변화지표 |
+| earningsSpendings           | 소득소비     |
+| infrastructure              | 집객시설     |
+
+
+출처 : <https://data.seoul.go.kr/>
+
+### 1.1 데이터 준비
+
+```{r}
+library(tidyverse)
+library(caTools)
+library(readr)
+library(rlist)
+library(rgdal)
+library(sp)
+library(ggplot2)
+library(ggbiplot)
+library(ggthemes)
+library(RColorBrewer)
+library(raster)
+library(cowplot)
+library(reshape)
+library(corrplot)
+library(car)
+library(Metrics)
+library(patchwork)
+library(gridExtra)
+library(reshape2)
+library(rcompanion)
+library(sjPlot)
+
+# data 폴더안에 있는 모든 데이터 리스트
+files <- list.files(path="data/")
+files
+
+# 데이터를 한번에 다 불러오기
+csvFiles <- list()
+for(i in 1:length(files)){
+  code <- paste0("read_csv(paste0('data/', '", files[i],"'), locale = locale('ko', encoding = 'euc-kr'))") # 함수식 설정
+  result <- list(eval(parse(text=code))) # 함수식 실행
+  result <- setNames(result, gsub("*.csv","",files[i])) # 이름을 파일명과 같이 설정
+  csvFiles <- append(csvFiles, result) # 데이터를 리스트안에 몰아 넣기
+
+  rm(result, code)
+}
+```
+
+`추정매출` 데이터는 2019, 2020 데이터가 구분되어 있어서 하나의 테이블로 합쳐주었다. 근데 변수명이 다르기 때문에 그냥 합칠 시 NA가 생기므로 변수명을 통일시켜주었다.
+
+카페에 해당되는 업종 코드명 "커피-음료"만 추출하였다. 다른 7개의 데이터에는 없는데 `추정매출에`만 있는 `서비스_업종_코드`, `서비스_업종_코드_명`도 삭제해주었다.
+
+```{r}
+# 변수명이 다른 위치 찾기
+diffVar <- which(names(csvFiles$estimatedSales2019) != names(csvFiles$estimatedSales2020))
+
+# 2020년도 데이터의 변수명을 기준으로 변경
+names(csvFiles$estimatedSales2019)[diffVar] <- names(csvFiles$estimatedSales2020)[diffVar]
+
+estimatedSales <- bind_rows(csvFiles$estimatedSales2019, csvFiles$estimatedSales2020)
+csvFiles <- csvFiles %>% within(rm(estimatedSales2019, estimatedSales2020))
+csvFiles <- append(csvFiles, list(estimatedSales), after = 0)
+names(csvFiles)[1] <- "estimatedSales"
+
+csvFiles$estimatedSales$서비스_업종_코드_명 %>% unique
+csvFiles$estimatedSales <- csvFiles$estimatedSales %>% filter(`서비스_업종_코드_명` == "커피-음료")
+csvFiles$estimatedSales <- csvFiles$estimatedSales %>% within(rm("서비스_업종_코드", "서비스_업종_코드_명"))
+```
+
+`상권변화지표`는 데이터 특성상 가장 최신의 상태가 중요하기 때문에 따로 빼서 4분기 데이터만 사용하기위해 따로 분리시켰다.
+
+```{r}
+# 상권변화지표 데이터만 따로 분리
+districtState <- csvFiles$districtState
+csvFiles <- csvFiles %>% within(rm(districtState))
+```
+
+`소득소비` 데이터의 `소득_구간_코드`가 문자열로 되어있어서 연단위로 합칠 수 없으므로 제거해 주었다.
+
+```{r}
+csvFiles$earningsSpendings <- csvFiles$earningsSpendings %>% within(rm(소득_구간_코드))
+```
+
+데이터가 2020년 4분기까지 밖에 없어서 비교를 위해 동일한 기간을 설정해주었다.
+
+```{r}
+# 데이터 기간 설정
+time2019 <- 2019
+time2020 <- 2020
+exclude_quarter <- 1
+
+# 데이터들의 1열~6열까지 변수명을 통일
+for(i in 1:length(csvFiles)){
+  colnames(csvFiles[[i]])[1:6] <- c("기준_년_코드", "기준_분기_코드", "상권_구분_코드", "상권_구분_코드_명", "상권_코드", "상권_코드_명")
+}
+
+# 분기별 데이터를 연간 데이터로 합쳐주는 함수
+aggregateYearly <- function(data){
+  data <- data %>% within(rm("기준_분기_코드", "상권_구분_코드", "상권_구분_코드_명", "상권_코드_명"))
+  data <- data %>% group_by(`상권_코드`, `기준_년_코드`) %>% dplyr::summarise(across(everything(), mean)) # 분기별로 나눠져있는 변수들을 평균값으로 합쳐서 연단위로 
+  return(data)
+}
+
+# 2019년, 2020년 각각 2,3,4분기만 남기는 함수
+cutTime <- function(data, option){
+  # data : 데이터
+  # option : 1=연간 평균으로 합치기
+  data <- data %>% filter(`기준_분기_코드` != exclude_quarter)
+  data2019 <- data %>% filter(`기준_년_코드` == time2019)
+  data2020 <- data %>% filter(`기준_년_코드` == time2020)
+  
+  if(missing(option)){
+    print("skipped aggregating...")
+  } else {
+    data2019 <- aggregateYearly(data2019)
+    data2020 <- aggregateYearly(data2020)  
+  }
+  
+  return(list(data2019, data2020))
+}
+
+dataList2019 <- list()
+dataList2020 <- list()
+
+for(i in 1:length(csvFiles)){
+  # 2019
+  cutData <- cutTime(csvFiles[[i]], 1)
+  
+  result <- list(cutData[[1]])
+  result <- setNames(result, names(csvFiles[i]))
+  dataList2019 <- append(dataList2019, result)
+  
+  # 2020
+  result <- list(cutData[[2]])
+  result <- setNames(result, names(csvFiles[i]))
+  dataList2020 <- append(dataList2020, result)
+}
+rm(result) # 더이상 필요없는 변수 삭제
+```
+
+데이터가 제대로 추출 되었는지 확인해주었다.
+
+```{r}
+checkLength <- function(){
+  recordLength19 <- list()
+  recordLength20 <- list()
+
+  for(i in 1:length(csvFiles)){
+    result <- nrow(dataList2019[[i]])
+    result <- setNames(result, names(dataList2019[i]))
+    recordLength19 <- append(recordLength19, result)
+    
+    result2 <- nrow(dataList2020[[i]])
+    result2 <- setNames(result2, names(dataList2020[i]))
+    recordLength20 <- append(recordLength20, result2)
+  }
+  bind_rows(as.data.frame(recordLength19), as.data.frame(recordLength20)) %>% t
+}
+
+checkLength()
+```
+
+`추정매출` 데이터를 확인해보았다.
+
+```{r}
+anti_join(dataList2019$estimatedSales$상권_코드 %>% as.data.frame, dataList2020$estimatedSales$상권_코드 %>% as.data.frame)
+csvFiles$estimatedSales[csvFiles$estimatedSales$상권_코드 == 1000750,] %>% group_by(`상권_코드_명`) %>% summarise(mean(`분기당_매출_금액`))
+```
+
+상권코드가 1000750인 사당로23길 상권에 데이터가 2020년도에는 없는것같다. 매출에 규모가 크지 않아 데이터를 제거해주기로 결정하였다. 따라서 다른 데이터들에도 1000750 상권의 데이터를 삭제해주었다.
+
+```{r}
+for(i in 1:length(dataList2019)){
+  dataList2019[[i]] <- subset(dataList2019[[i]], `상권_코드` != 1000750)
+  dataList2020[[i]] <- subset(dataList2020[[i]], `상권_코드` != 1000750)
+}
+checkLength()
+```
+
+잘 지워졌다.
+
+상권변화지표는 상권배후지 데이터가 없어서 다른 데이터에는 없는 상권 데이터들은 제거해주었다. 그리고 추가로 `상권_변화_지표`가 명목변수이기 때문에 숫자 범주형 데이터로 만들어주었다. 위에서 제거해주었던 1000750에 해당되는 데이터들도 제거해주었다.
+
+```{r}
+trimData <- function(data){
+  data <- data %>% filter(`기준_분기_코드` == 4)
+  diffCode <- anti_join(data$상권_코드 %>% as.data.frame, dataList2019$estimatedSales$상권_코드 %>% as.data.frame)
+  data <- data %>% filter(`상권_코드` != diffCode[[1]])
+  data$`상권_변화_지표` <- as.integer(factor(data$`상권_변화_지표`))
+  data <- subset(data, `상권_코드` != 1000750)
+  return(data)
+}
+
+# 상권변화지표코드 참고용 룩업테이블
+stateCode <- districtState$`상권_변화_지표` %>% unique
+stateCodeName <- districtState$`상권_변화_지표_명` %>% unique
+stateCodeLabel <- factor(districtState$`상권_변화_지표`) %>% unique %>% as.integer
+
+districtStateLookupTable <- data.frame(stateCode = stateCode,
+                                       stateCodeName = stateCodeName,
+                                       stateCodeLabel = stateCodeLabel)
+
+districtState <- cutTime(districtState)
+districtState2019 <- trimData(districtState[[1]])
+districtState2020 <- trimData(districtState[[2]])
+
+checkLength()
+```
+
+이제 모든 데이터의 관측값이 1009개로 동일해졌다.
+
+8가지 데이터들 중에서 사용할 변수만 추출하여 주었다.
+
+```{r}
+# 유동인구
+EstimatedFloatingPopulation2019 <- dataList2019$estimatedFloatingPopulation[1:24]
+EstimatedFloatingPopulation2020 <- dataList2020$estimatedFloatingPopulation[1:24]
+# 직장인수
+EmployeeNum2019 <- dataList2019$numOfEmployee[1:11]
+EmployeeNum2020 <- dataList2020$numOfEmployee[1:11]
+# 상주인구
+SettledPopulation2019 <- dataList2019$settledPopulation[c(1:11, 24)]
+SettledPopulation2020 <- dataList2020$settledPopulation[c(1:11, 24)]
+
+# 소득소비
+# 2019년 소득소비 데이터와 2020년 소득소비 데이터에서 사용할 변수들의 열만 추출해서 하나의 데이터 파일로 합치기
+earningsSpendings2019 <- dataList2019$earningsSpendings[c(1:4,11,12)]
+earningsSpendings2020 <- dataList2020$earningsSpendings[c(1:4,11,12)]
+# 집객시설
+# 2019년 집객시설 데이터와 2020년 집객시설 데이터에서 사용할 변수들의 열만 추출해서 하나의 데이터 파일로 합치기
+infrastructure2019 <- dataList2019$infrastructure[c(1,2,4,9:12,16,17,21,22)]
+infrastructure2020 <- dataList2020$infrastructure[c(1,2,4,9:12,16,17,21,22)]
+
+# 추정매출
+sales2019 <- dataList2019$estimatedSales[c(1:3, 74)]
+sales2020 <- dataList2020$estimatedSales[c(1:3, 74)]
+# 분기당 매출금액 변수명을 '총매출금액'으로 통일
+colnames(sales2019)[3] <- "총매출금액"
+colnames(sales2020)[3] <- "총매출금액"
+
+# 상권변화지표
+districtState2019 <- districtState2019[c(1, 5, 7, 9, 10)]
+districtState2020 <- districtState2020[c(1, 5, 7, 9, 10)]
+```
+
+분석을 위해 하나의 테이블로 만들기
+
+```{r}
+# 2019
+data2019 <- list(sales2019,
+                 EstimatedFloatingPopulation2019, 
+                 EmployeeNum2019, 
+                 SettledPopulation2019, 
+                 earningsSpendings2019, 
+                 infrastructure2019, 
+                 districtState2019) %>% reduce(left_join, by = c("상권_코드", "기준_년_코드"))
+
+sum(is.na(data2019))
+data2019[is.na(data2019)] <- 0
+modelData2019 <- data2019[4:61]
+# 2020
+data2020 <- list(sales2020,
+                 EstimatedFloatingPopulation2020, 
+                 EmployeeNum2020, 
+                 SettledPopulation2020, 
+                 earningsSpendings2020, 
+                 infrastructure2020, 
+                 districtState2020) %>% reduce(left_join, by = c("상권_코드", "기준_년_코드"))
+
+sum(is.na(data2020))
+data2020[is.na(data2020)] <- 0
+modelData2020 <- data2020[4:61]
+```
+
+## 2. EDA
+
+### 2.1 종속변수 매출총금액 EDA
+
+우선 종속변수인 매출 총금액을 시각화해보았다. 
+
+#### 2.1.1 총 매출 금액 히스토그램
+
+다음으로 상권별 총 매출금액에 따른 상권의 빈도 분포를 히스토그램으로 그려보았다. 
+
+```{r, echo=FALSE}
+ggplot(sales2019, aes(x=총매출금액)) +
+  geom_histogram(fill='skyblue', colour='black')+
+  ggtitle('2019년도 총 매출 금액 히스토그램')
+
+ggplot(sales2020, aes(x=총매출금액)) +
+  geom_histogram(fill='skyblue', colour='black')+
+  ggtitle('2020년도 총 매출 금액 히스토그램')
+```
+
+2019년과 2020년의 상권코드 모두 총 매출 금액이 앞쪽에 몰려있는 positive skewed data임을 알 수 있다. 해당 히스토그램에 따르면 종속변수인 총 매출금액은 정규분포를 따르지 않을 것으로 보인다.
+
+#### 2.1.2. 분기별 매출금액 변화
+
+2019년과 2020년의 분기별 총 매출금액의 변화를 라인그래프를 통해 알아보았다.  
+
+```{r, echo=FALSE}
+temp <- estimatedSales %>%
+                filter(서비스_업종_코드_명=='커피-음료') %>%
+                filter(기준_년_코드 == 2019 | 기준_년_코드 == 2020)%>%
+                group_by(기준_년_코드, 기준_분기_코드) %>%
+                dplyr::summarise(money= mean(분기당_매출_금액))
+
+
+ggplot(temp, aes(x=기준_분기_코드, y=money, group= 기준_년_코드,colour=factor(기준_년_코드) ))+
+  geom_line()
+```
+
+코로나가 발생한 2분기를 기점으로 2019년은 총 매출액이 늘어난 반면 2020년엔 2분기에서 3분기까지 줄어들다가 3분기 이후 급격하게 감소하고 있다.이는 카페 매출이 겨울에 더 줄어드는 경향이 있기 때문인 것으로 보인다. 반면 2019년에는 2사분기 이후 매출액이 늘어나는 양상을 보였다. 2019년에 이러한 양상을 보이는 것에 대해선 매출 증가에 영향을 줄만한 사건은 찾을 수 없었다. 
+
+#### 2.1.3. 2019년과 2020년의 변수 별 매출금액 평균 - 주중, 주말
+
+다음으로 주중 주말과 요일, 시간대, 성별, 연령대 별 변수에 따른 2019년과 2020년의 매출액 양상을 막대그래프를 통해 알아보았다. 매출금액은 각 변수에 다른 상권들의 매출액 평균으로 집계하였다. 
+
+다음은 주중 주말의 매출금액에 대한 그래프이다.
+
+```{r, echo=FALSE}
+# 평균으로 매출금액 집계
+avgSales2019 <- dataList2019$estimatedSales[28:50] %>% colMeans() %>% t %>% as.data.frame
+avgSales2020 <- dataList2020$estimatedSales[28:50] %>% colMeans() %>% t %>% as.data.frame
+
+temp<- rbind(avgSales2019, avgSales2020)
+year <- data.frame(`기준_년_코드` = c(2019,2020))
+temp <- bind_cols(year, temp)
+
+# 그래프 그리는 함수 작성
+draw_money<-function(df, varNames){
+  sale_weekday<- df %>% dplyr::select(varNames)
+  sale_weekday<- melt(as.data.frame(sale_weekday), id.vars= c("기준_년_코드"), measure.vars= varNames[-1])
+  
+  ggplot(sale_weekday, aes(x= variable, y= value))+
+    geom_bar(stat="identity") + facet_wrap(~기준_년_코드, nrow=1)+
+    theme(axis.text.x=element_text(angle=25, hjust=1, size=7))
+}
+```
+
+```{r, echo=FALSE}
+draw_money(temp, c("기준_년_코드", "주중_매출_금액","주말_매출_금액"))
+```
+
+주말보다는 주중에 매출이 더 많다. 2020년엔 2019년에 비해 그 스케일이 조금 줄어들었다. 변수에서 주중과 주말을 나누어 볼 필요가 있어보인다. 
+
+#### 2.1.4. 2019년과 2020년의 변수 별 매출금액 평균 - 요일
+
+각 요일 별 매출금액에 대한 그래프이다. 
+
+```{r, echo=FALSE}
+draw_money(temp, c("기준_년_코드", "월요일_매출_금액","화요일_매출_금액", "수요일_매출_금액", "목요일_매출_금액", "금요일_매출_금액", "토요일_매출_금액", "일요일_매출_금액"))
+```
+
+요일별 매출금액의 경우 일요일의 매출이 가장 낮다. 그리고 두 기간의 다른 요일들에 비해 2020년 월요일의 매출금액이 2019년 월요일의 매출금액보다 더욱 낮아졌음을 볼 수 있다. 
+
+#### 2.1.5. 2019년과 2020년의 변수 별 매출금액 평균 - 시간대
+
+시간대 별 매출금액에 대한 그래프이다. 
+
+```{r, echo=FALSE}
+draw_money(temp, c("기준_년_코드","시간대_00~06_매출_금액","시간대_06~11_매출_금액","시간대_11~14_매출_금액","시간대_14~17_매출_금액","시간대_17~21_매출_금액","시간대_21~24_매출_금액"))
+```
+
+시간대별 매출금액의 경우 점심시간 전후인 11시에서 14시 사이의 매출금액이 가장 높다.매출 피크 시간대인 11시 부터 저녁 9시까지와 비피크 시간대를 나눠 볼 필요가 있어보인다. 
+2020년 17시에서 24시 사이의 매출금액이 2019년에 비해 크게 줄어들었음을 알 수 있다. 이에는 밤 10시 이후 영업금지 제한의 영향도 있을 것이라 추정된다. 
+
+#### 2.1.6. 2019년과 2020년의 변수 별 매출금액 평균 - 성별
+
+```{r, echo=FALSE}
+draw_money(temp, c("기준_년_코드","남성_매출_금액","여성_매출_금액" ))
+```
+
+성별 매출금액을 보았을 때, 여성이 남성보다 카페에 더 많은 돈을 사용한다는 것을 알 수 있다. 2020년엔 2019년에 비해 남성보다 여성의 매출금액 감소폭이 더욱 크다. 성별에 따라 변수를 나누는 것이 좋을 것으로 보인다. 
+
+#### 2.1.7. 2019년과 2020년의 변수 별 매출금액 평균 - 연령대
+
+```{r, echo=FALSE}
+draw_money(temp, c("기준_년_코드","연령대_10_매출_금액","연령대_20_매출_금액","연령대_30_매출_금액","연령대_40_매출_금액" ,
+                   "연령대_50_매출_금액","연령대_60_이상_매출_금액"))
+```
+
+연령대 별 매출금액의 경우, 10대의 카페 매출액이 가장 낮고 20대가 가장 매출액이 높다. 그리고 60대로 갈 수록 매출액이 점차 낮아지는 양상을 보인다. 2019년에 비해 2020년의 20대 매출금액이 가장 큰 폭으로 감소하였음을 알 수 있다. 가장 낮은 매출액을 보이는 10대와 가장 높은 매출을 보이는 20대, 그리고 가장 낮은 매출을 보이는 60대를 각각 나누어 봐야 할 필요성이 있다. 
+
+2.1.2 그래프부터 2.1.5까지의 그래프를 보았을 때 전체적으로는 2020년의 매출금액 스케일이 2019년의 스케일보다는 조금씩 줄어든 경향을 보이지만 두 연도의 그래프 양상은 비슷한 양상을 띄고 있음을 알 수 있었다. 
+
+매출금액을 대상으로 EDA를 그려봄으로써 수많은 독립변수들을 어떻게 추려야 할지 간략하게 알아보았다. 
+
+
+### 2.2. 점포수 대비 매출액이 높은 상권과 낮은 상권 비교
+
+다음으로 점포수 대비 매출액이 높은 상권의 변수들과 낮은 상권의 변수들을 비교해봄으로써 독립변수에 대한 EDA를 더욱 세부적으로 해보고자 한다. 해당 EDA는 2019와 2020년도를 통틀어 저매출 상권과 고매출상권의 독립변수 분포에 차이가 있는지 보기위한 목적이기 때문에 2019년과 2020년의 데이터를 통합시킨 데이터를 사용하였다. 
+
+점포수 대비가 아닌 단순 매출금액을 대상으로 상권들을 지도로 시각화해보면 다음과 같다. 
+
+(지도 데이터 출처 : http://www.gisdeveloper.co.kr/?p=2332_
+
+```{r, echo=FALSE}
+# 상권코드 추출
+districtCode <- csvFiles$numOfEmployee[5:6] %>% unique
+districtCode$상권_코드 <- as.factor(districtCode$상권_코드)
+
+# 골목상권 좌표 추출
+location <- read_csv("data/seoulGolmok.csv", locale = locale('ko', encoding = 'euc-kr'))
+oldCoord <- location[6:7]
+colnames(oldCoord) <- c("long","lat")
+coordinates(oldCoord) <- c("long","lat")
+
+proj4string(oldCoord) <- CRS("+init=epsg:5181")
+newCoord <- spTransform(oldCoord, CRS("+init=epsg:4326"))
+newCoord <- newCoord %>% as.data.frame
+location <- bind_cols(location, newCoord)
+location <- location[c(4, 11:12)]
+location$상권_코드 <- as.factor(location$상권_코드)
+location <- location[!(location$상권_코드==1000750),]
+  
+# 상권코드-상권코드명  
+codeAndlocation <- left_join(location, districtCode, by="상권_코드")
+```
+
+```{r, echo=FALSE}
+mapShp <- shapefile("SIG/TL_SCCO_SIG.shp")
+map <- fortify(mapShp, region="SIG_CD")
+map$id <- as.numeric(map$id)
+seoulMap <- map[map$id<=11740,]
+
+# 좌표계 변경
+convert <- seoulMap[1:2]
+coordinates(convert) <- c("long","lat")
+proj4string(convert) <- CRS("+init=epsg:5179")
+converted <- spTransform(convert, CRS("+init=epsg:4326"))
+converted <- converted %>% as.data.frame
+seoulMap[1:2] <- converted
+
+# 서울시 구 좌표 추출
+sigCode <- read_csv("data/sig_code.csv", locale = locale('ko', encoding = 'euc-kr'))
+sigCode <- sigCode[c(3, 6:7)]
+colnames(sigCode) <- c("gu","lat","long")
+
+g <- seoulMap %>% ggplot() + 
+  geom_polygon(aes(x=long, y=lat, group=group), fill="grey", color="white") + 
+  geom_text(data=sigCode, aes(x=long, y=lat, label=gu), size=2.5)
+```
+
+```{r, echo=FALSE}
+sales2019$상권_코드 <- as.factor(sales2019$상권_코드)
+mapping <- left_join(location, sales2019[,c(1,3)], by="상권_코드")
+mapping <- mapping %>% arrange(`총매출금액`)
+
+sales2020$상권_코드 <- as.factor(sales2020$상권_코드)
+mapping2 <- left_join(location, sales2020[,c(1,3)], by="상권_코드")
+mapping2 <- mapping2 %>% arrange(`총매출금액`)
+
+plotSales <- function(mapping, mapping2){
+  before <- g + geom_point(data=mapping, aes(x=long, y=lat, color=`총매출금액`, size=`총매출금액`, alpha=`총매출금액`)) +
+    guides(alpha = FALSE, size = FALSE) +
+    scale_alpha(range=c(0.3,0.5)) +
+    scale_size_continuous(range=c(1,15)) +
+    scale_colour_gradient(low="#ffcccc", high="#ff0000") +
+    theme_void()
+
+  after <- g + geom_point(data=mapping2, aes(x=long, y=lat, color=`총매출금액`, size=`총매출금액`, alpha=`총매출금액`)) +
+    guides(alpha = FALSE, size = FALSE) +
+    scale_alpha(range=c(0.3,0.5)) +
+    scale_size_continuous(range=c(1,15)) +
+    scale_colour_gradient(low="#ffcccc", high="#ff0000") +
+    theme_void()
+  
+  return(list(before, after))
+}
+
+plotMap <- plotSales(mapping, mapping2)
+plotMap[[1]]
+plotMap[[2]]
+```
+
+지도를 보면 명동에 위치한 상권의 매출금액이 가장 높은 것을 볼 수 있다. 
+
+하지만 명동에 다른 상권보다 점포수가 많다면 매출금액이 높은 것은 당연한 결과일 수 있다. 그렇기 때문에 점포수를 고려한 매출금액을 통해 고매출 상권과 저매출 상권이 어느 곳일지 더 정확히 알아볼 필요가 있다. 
+
+#### 2.2.1. 점포수와 매출금액의 산점도
+
+점포수와 매출금액에 선형관계가 있는지 보기 위한 산점도 그래프를 그려보았다. 
+
+```{r, echo=FALSE}
+# 2019와 2020 데이터 통합
+total<- rbind(data2019, data2020)
+ggplot(total, aes(x= 점포수, y= 총매출금액)) + geom_point(alpha= 0.3)
+```
+
+상권코드 별로 점포수가 많아질수록 총매출금액이 증가하는 것을 볼 수 있다. 
+
+따라서 매출금액이 높은 상권과 낮은 상권을 비교해보기 위해 상권 별 점포수 대비 매출금액을 계산하여 고 해당 그래프의 박스 플롯을 그려보았다. 
+
+### 2.2.2. 점포수 대비 매출금액의 박스플롯
+
+```{r, echo=FALSE}
+# 점포수 대비 총매출금액으로 총매출금액 바꿔주기
+total$ 총매출금액<- total$총매출금액/total$점포수
+
+# 점포수 대비 총 매출금액에 대한 박스플롯 그리기
+ggplot(total, aes(총매출금액)) + geom_boxplot()
+# 1분위, 3사분위 수 출력
+(quantile(total$총매출금액, prob=c(0.25, 0.75)))
+
+```
+
+결과를 보면 13124111이 하위 매출금액 25%에 해당하는 값이고 35104270이 하위 매출금액 75%를 포함하는 값임을 알 수 있다. 
+
+해당 결과를 사용하여 저매출 상권은 총매출금액이 13124111원 이하인 상권으로, 고매출 상권은 총매출금액이 35104270원 이상인 상권으로 설정하였다. 
+
+```{r, echo=FALSE}
+total<- total %>%
+  mutate(상권매출구분= ifelse(총매출금액 <= 13124111, '저매출상권', ifelse(총매출금액 >= 35104270, '고매출상권',' ')))
+
+cpr<- total %>%
+  group_by(상권매출구분) %>%
+  summarize_all(mean) 
+
+print(cpr)
+```
+
+이제 두 상권에 대한 변수들의 비교를 간단히 해보고자 한다.
+
+#### 2.2.3.두 상권 별 유동인구 변수 비교
+
+성별, 시간대별, 연령대별, 요일별 그래프를 그려보았지만 네개의 그래프 중 저매출상권과 고매출 상권사이의 차이가 보이는 그래프만 나타내보았다. 
+
+```{r, echo=FALSE}
+cpr<- cpr[c(which(cpr$상권매출구분== '저매출상권'), which(cpr$상권매출구분== '고매출상권')),]
+
+# 데이터 조작과 그래프 그리는 함수선언
+make_df<-function(df, varNames){
+  temp<- df %>% dplyr::select(varNames)
+temp<-melt(as.data.frame(temp), id.vars= c("상권매출구분"))
+return(temp)
+}
+
+draw_df1<- function(df, varNames){
+  ggplot(df, aes(x= variable, y= value))+
+  geom_bar(stat="identity") + facet_wrap(~상권매출구분, nrow=1)+
+  theme(axis.text.x=element_text(angle=25, hjust=1, size=7))+
+  scale_fill_brewer(palette="Spectral")
+}
+
+draw_df2<- function(df){
+  ggplot(df, aes(x=factor(상권매출구분), y=value, fill=variable)) + geom_bar(stat="identity", position="fill", width=0.4, colour="black")+
+  scale_y_continuous(labels = scales::percent_format()) +
+   theme(legend.position="right")  + 
+  theme(legend.title = element_text(size = 10)) + # legend title
+  theme(legend.text = element_text(size = 8))+
+    scale_fill_brewer(palette="Spectral")+
+  theme(axis.text.x=element_text(angle=25, hjust=1, size=7))
+}
+
+# 연령대별 유동인구
+graph_df<- make_df(cpr, c("상권매출구분","연령대_10_유동인구_수","연령대_20_유동인구_수","연령대_30_유동인구_수","연령대_40_유동인구_수" , "연령대_50_유동인구_수","연령대_60_이상_유동인구_수"))
+float3<- draw_df2(graph_df)+ ggtitle("연령대 별 유동인구")
+```
+
+연령대 별 유동인구에서 고매출상권엔 연령대 20,30대 유동인구가 저매출상권에 비해 많은 반면, 저매출 상권의 경우엔 연령대 60 이상의 유동인구가 많다. 이 외 성별, 시간대 별, 연령대 별 유동인구의 비율에서는 미세한 차이가 보였다.
+
+#### 2.2.3.두 상권 별 직장인구 변수 비교
+
+```{r, echo=FALSE}
+# 직장인구수 
+## 성별 직장인구
+graph_df<- make_df(cpr, c("여성_직장_인구_수","남성_직장_인구_수","상권매출구분"))
+emp1<- draw_df2(graph_df)+ ggtitle("성별 직장인구")
+## 연령대별 유동인구
+graph_df<- make_df(cpr, c("상권매출구분","연령대_10_직장_인구_수","연령대_20_직장_인구_수","연령대_30_직장_인구_수","연령대_40_직장_인구_수" , "연령대_50_직장_인구_수","연령대_60_이상_직장_인구_수"))
+emp2<- draw_df2(graph_df)+ ggtitle("연령대 별 직장인구")
+grid.arrange(emp1, emp2, nrow=1, ncol=2)
+```
+
+성별 직장인구에선 매출이 높은 고매출상권에서 남성 직장 인구수가 좀 더 높은 것으로 보인다.
+
+연령대 별 직장인구에선 고매출 상권엔 비교적으로 20, 30대 직장인구가 많고  저매출 상권엔 50, 60대 직장인구 수가 많은 것을 볼 수 있다. 
+
+#### 2.2.4.두 상권 별 상주인구 변수 비교
+
+연령대, 성별 직장인구 중 차이가 조금 보이는 성별 연령대 별 직장인구 만을 나타내었다. 
+
+```{r, echo=FALSE}
+## 연령대별 유동인구
+graph_df<- make_df(cpr, c("상권매출구분","연령대_10_상주인구_수","연령대_20_상주인구_수","연령대_30_상주인구_수","연령대_40_상주인구_수" , "연령대_50_상주인구_수","연령대_60_이상_상주인구_수"))
+set2<- draw_df2(graph_df)+ ggtitle("연령대 별 상주인구_수")
+```
+
+저매출 상권의 경우 연령대 60이상인 상주인구수가 가장 많은 비율을 차지하고 있다. 그리고 20,30 대 상주인구의 비율이 고매출상권보단 적은 비율을 기록한다. 이로 미뤄보아 저매출상권은 젊은 층이 많이 상주하지 않는 지역임을 알 수 있다. 
+
+직장인구, 상주인구, 유동인구 변수들을 보았을 때 연령대별 인구가 매출액에 영향을 끼칠 수 있는 요소가 될 수 있을 것으로 추정된다. 
+
+#### 2.2.5.두 상권 별 소득금액, 지출금액 비교
+
+```{r, echo=FALSE}
+# 소득금액, 지출금액
+graph_df<- make_df(cpr, c("월_평균_소득_금액","상권매출구분"))
+income<- draw_df1(graph_df)
+graph_df<- make_df(cpr, c("문화_지출_총금액","교육_지출_총금액","상권매출구분"))
+expense<-draw_df1(graph_df)
+grid.arrange(income, expense, nrow=1, ncol=2)
+```
+
+확실히 고매출 상궈의 월평균 소득금액이 높다. 그러나 문화지출, 교육 지출 총금액의 경우 저매출상권의 금액이 좀 더 높은 것을 볼 수 있다. 
+
+#### 2.2.6.두 상권 별 집객시설 비교
+
+```{r, echo=FALSE}
+# 집객시설
+graph_df<- make_df(cpr, c("상권매출구분","관공서_수","유치원_수","초등학교_수","중학교_수","고등학교_수","극장_수","숙박_시설_수","지하철_역_수","버스_정거장_수"))
+ggplot(graph_df, aes(x="", y=value, fill=variable)) + geom_bar(stat="identity", position="fill", width=0.4, colour="black")+ coord_polar("y")+
+scale_y_continuous(labels = scales::percent_format()) +
+ theme(legend.position="right")  + 
+theme(legend.title = element_text(size = 10)) + # legend title
+theme(legend.text = element_text(size = 8))+
+  scale_fill_brewer(palette="Spectral")+
+  facet_wrap(.~상권매출구분)
+```
+
+총 집객시설의 경우 고매출 상권엔 저매출상권에 비해 숙박시설과 극장 수의 비율이 높은 것을 볼 수 있다. 저매출 상권엔 상대적으로 유치원, 초등학교, 중학교와 같은 교육시설의 비율이 높은 것을 볼 수 있다. 
+
+### 2.3 총직장인구수와 총매출금액의 산점도
+
+마지막으로 직장인구, 상주인구, 유동인구와 총매출금액에 대한 산점도를 작성해보았다. 그 중 약간의 상관관계를 보였던 직장인구수와 매출금액의 산점도만을 나타내보았다. 
+
+```{r, echo=FALSE}
+# 2019년 총 직장인구수와 총 매출금액에 대한 상관계수 구하기
+cor(data2019$총_직장_인구_수, data2019$총매출금액)
+
+# (편의상)영어로 변수 이름 바꿔주기
+Total_workpopulation2019 <- data2019$총_직장_인구_수
+Total_sales2019 <- data2019$총매출금액
+
+# 총 직장인구 수(Total_workpopulation) 오름차순으로 정렬
+# workpopulation이 올라갈 수록 총매출금액(Total_sales)의 값이 급격히 커졌음, 이런 성향 때문에 이상치 발생 예상
+reworkpopulation2019 <- Total_workpopulation2019[order(Total_workpopulation2019)]
+
+# 2020년 총 직장인구수와 총 매출금액에 대한 상관계수 구하기
+cor(data2020$총_직장_인구_수, data2020$총매출금액)
+
+# (편의상)영어로 변수 이름 바꿔주기
+Total_workpopulation2020 <- data2020$총_직장_인구_수
+Total_sales2020 <- data2020$총매출금액
+
+# 총 직장인구 수(Total_workpopulation) 오름차순으로 정렬
+# workpopulation이 올라갈 수록 총매출금액(Total_sales)의 값이 급격히 커졌음, 이런 성향 때문에 이상치 발생 예상
+reworkpopulation2020 <- Total_workpopulation2020[order(Total_workpopulation2020)]
+
+# 2019, 2020년 총직장인구수와 총매출금액의 산점도 그리기
+ggplot(data2019, aes(x=Total_workpopulation2019, y=Total_sales2019, colour=Total_workpopulation2019)) + geom_point() + ggtitle(label = "2019")
+ggplot(data2020, aes(x=Total_workpopulation2020, y=Total_sales2020, colour=Total_workpopulation2020)) + geom_point() + ggtitle(label = "2020")
+```
+
+총 직장인구수와 총매출금액 간 상관계수가 양의 관계로 나타났고, 그 정도가 0.4~0.6 정도로 나타난 것을 보았을 때,  즉 둘의 상관관계는 약하지 않은 것을 알 수 있다.
+
+
+## 3. 주성분 분석과 다중 회귀 분석
+
+종속변수들과 독립변수들이 정규분포를 따르게 변화시켜 분석을 실행하여 보았다. 변환에 사용한 방법은 Tuckey's Ladder of Powers 방법으로, 이는 데이터를 최대한 정규분포로 만들어주는 lambda 값을 찾고 이를 변수에 n제곱 시켜 값을 변환시켜준다.
+
+2019년
+
+```{r}
+# 종속변수와 독립변수 나누기
+indep19 <- data2019[,4:61]
+dep19 <- data2019[,3]
+
+# Tuckey Ladder of Powers로 종속변수와 독립변수를 변환
+par(mfrow=c(2,2))
+dep19T <- transformTukey(dep19[[1]])
+indep19T <- indep19 %>% map(transformTukey, quiet=TRUE, plotit=FALSE)
+indep19T <- indep19T %>% as.data.frame
+
+pca19 <- prcomp(indep19T, scale = T)
+summary(pca19)
+```
+
+회귀 모형에 집어넣을 변수로 분산의 누적 합계, Cumulative proportion이 80%가 되는 PC5까지 선택하였다.
+
+```{r}
+pcs19 <- as.data.frame(pca19$x)
+pcs19 <- pcs19[1:5]
+input19 <- bind_cols(dep19T, pcs19)
+colnames(input19)[1] <- "totalSales"
+regModel19 <- lm(totalSales ~ ., data = input19)
+summary(regModel19)
+shapiro.test(regModel19$residuals)
+```
+
+2020년
+
+```{r}
+indep20 <- data2020[,4:61]
+dep20 <- data2020[,3]
+
+# Tuckey Ladder of Powers로 종속변수와 독립변수를 변환
+par(mfrow=c(2,2))
+dep20T <- transformTukey(dep20[[1]])
+indep20T <- indep20 %>% map(transformTukey, quiet=TRUE, plotit=FALSE)
+indep20T <- indep20T %>% as.data.frame
+
+pca20 <- prcomp(indep20T, scale = T)
+summary(pca20)
+```
+
+2019년도와 동일하게 회귀 모형에 집어넣을 변수로 분산의 누적 합계, Cumulative proportion이 80%가 되는 PC5까지 선택하였다.
+
+```{r}
+pcs20 <- as.data.frame(pca20$x)
+pcs20 <- pcs20[1:5]
+input20 <- bind_cols(dep20T, pcs20)
+colnames(input20)[1] <- "totalSales"
+regModel20 <- lm(totalSales ~ ., data = input20)
+summary(regModel20)
+shapiro.test(regModel20$residuals)
+```
+
+2019, 2020년도 회귀식의 잔차가 모두 정규분포를 따르지 않아 회귀분석의 가정을 만족하지 못해 데이터를 살펴보고 사용할 변수를 선택하기로 하였다.
+
+### 3.1 변수 축소
+
+독립변수간에 상관관계 매트릭스를 그려보았다. 상관관계를 지니는 독립변수들이 많으면 다중공선성이 발생할 확률이 높기 때문에 추가적인 EDA를 통해 분석 전 변수들을 살펴보고 최대한 줄여보고자 하였다. 상관관계가 높은 변수들이 많은것 같아 변수들을 줄여보기로 하였다.
+
+```{r}
+corData2019 <- data2019[,3:61]
+corData2019 <- within(corData2019, rm("총_유동인구_수", "총_직장_인구_수", "총_상주인구_수"))
+corData2019Corr <- within(corData2019, rm("총매출금액"))
+cor19 <- cor(corData2019Corr, method = c("spearman"))
+corrplot(cor19, tl.pos='n', title = "2019", mar=c(0,0,1,0))
+
+corData2020 <- data2020[,3:61]
+corData2020 <- within(corData2020, rm("총_유동인구_수", "총_직장_인구_수", "총_상주인구_수"))
+corData2020Corr <- within(corData2020, rm("총매출금액"))
+cor20 <- cor(corData2020Corr, method = c("spearman"))
+corrplot(cor20, tl.pos='n', title = "2020", mar=c(0,0,1,0))
+```
+
+```{r}
+# 변수 복사
+data2019_t <- data2019
+data2020_t <- data2020
+
+replaceColumn <- function(originalData, columnToAdd, drop){
+  originalData <- cbind(originalData, columnToAdd)
+  newData <- originalData[,!(names(originalData) %in% drop)]
+  return(newData)
+}
+```
+
+### 3.2 유동인구 시간대 묶기
+
+-   시간대1 : 00시1분 \~ 06시, 시간대2 : 06시1분 \~ 11시, 시간대3 : 11시1분 \~ 14시, 시간대4 : 14시1분 \~ 17시, 시간대5 : 17시1분 \~ 21시, 시간대6 : 21시1분 \~ 24시
+
+```{r}
+time2019 <- data2019[,14:19]
+data2019_t <- data2019_t %>% mutate(시간대_0_11 = (시간대_1_유동인구_수+시간대_2_유동인구_수)/2,
+                                      시간대_11_21 = (시간대_3_유동인구_수+시간대_4_유동인구_수+시간대_5_유동인구_수)/3,
+                                      시간대_21_24 = 시간대_6_유동인구_수)
+drop <- names(time2019)
+data2019_t <- data2019_t[ ,!(names(data2019_t) %in% drop)]
+
+time2020 <- data2020[,14:19]
+data2020_t <- data2020_t %>% mutate(시간대_0_11 = (시간대_1_유동인구_수+시간대_2_유동인구_수)/2,
+                                      시간대_11_21 = (시간대_3_유동인구_수+시간대_4_유동인구_수+시간대_5_유동인구_수)/3,
+                                      시간대_21_24 = 시간대_6_유동인구_수)
+drop <- names(time2020)
+data2020_t <- data2020_t[ ,!(names(data2020_t) %in% drop)]
+```
+
+### 3.3 연령대 묶기
+
+```{r}
+aggregateAge <- function(age){
+  age <- age %>% mutate(mean = rowMeans(age))
+  return(as.data.frame(age$mean))
+}
+
+cutAge <- function(data){
+  # 10
+  data_10 <- data[,1]
+  # 20~30
+  data_20_30 <- data[,2:3]
+  # 40~50
+  data_40_50 <- data[,4:5]
+  # 60~
+  data_60 <- data[,6]
+  
+  data_20_30 <- aggregateAge(data_20_30)
+  colnames(data_20_30) <- "mean"
+  data_40_50 <- aggregateAge(data_40_50)
+  colnames(data_40_50) <- "mean"
+  
+  ageCluster <- data.frame(age_10 = data_10, age_20_30 = data_20_30$mean, age_40_50 = data_40_50$mean, age_60 = data_60)
+  colnames(ageCluster) <- c("age_10", "age_20_30", "age_40_50", "age_60")
+  return(ageCluster)
+}
+
+# 유동인구
+floatingPopulationAge2019 <- data2019[,8:13]
+floatingPopulationAge2020 <- data2020[,8:13]
+
+floatinPopulationAgeCluster2019 <- cutAge(floatingPopulationAge2019)
+floatinPopulationAgeCluster2020 <- cutAge(floatingPopulationAge2020)
+
+data2019_t <- replaceColumn(data2019_t, floatinPopulationAgeCluster2019, names(floatingPopulationAge2019))
+colnames(data2019_t)[53:56] <- c("10_유동인구", "20_30_유동인구", "40_50_유동인구", "60_유동인구")
+data2020_t <- replaceColumn(data2020_t, floatinPopulationAgeCluster2020, names(floatingPopulationAge2020))
+colnames(data2020_t)[53:56] <- c("10_유동인구", "20_30_유동인구", "40_50_유동인구", "60_유동인구")
+
+# 상주인구
+settledPopulationAge2019 <- data2019[,39:44]
+settledPopulationAge2020 <- data2020[,39:44]
+
+settledPopulationAgeCluster2019 <- cutAge(settledPopulationAge2019)
+settledPopulationCluster2020 <- cutAge(settledPopulationAge2020)
+
+data2019_t <- replaceColumn(data2019_t, settledPopulationAgeCluster2019, names(settledPopulationAge2019))
+colnames(data2019_t)[51:54] <- c("10_상주인구", "20_30_상주인구", "40_50_상주인구", "60_상주인구")
+data2020_t <- replaceColumn(data2020_t, settledPopulationCluster2020, names(settledPopulationAge2020))
+colnames(data2020_t)[51:54] <- c("10_상주인구", "20_30_상주인구", "40_50_상주인구", "60_상주인구")
+
+# 직장인구
+numOfEmployeeAge2019 <- data2019[,30:35]
+numOfEmployeeAge2020 <- data2020[,30:35]
+
+numOfEmployeeAgeCluster2019 <- cutAge(numOfEmployeeAge2019)
+numOfEmployeeAgeCluster2020 <- cutAge(numOfEmployeeAge2020)
+
+data2019_t <- replaceColumn(data2019_t, numOfEmployeeAgeCluster2019, names(numOfEmployeeAge2019))
+colnames(data2019_t)[49:52] <- c("10_직장인구", "20_30_직장인구", "40_50_직장인구", "60_직장인구")
+data2020_t <- replaceColumn(data2020_t, numOfEmployeeAgeCluster2020, names(numOfEmployeeAge2020))
+colnames(data2020_t)[49:52] <- c("10_직장인구", "20_30_직장인구", "40_50_직장인구", "60_직장인구")
+```
+
+### 3.4 주중 주말로 묶기
+
+```{r results='hide'}
+# 요일 별 유동인구 추리기
+data2019_t <- data2019_t %>%
+  mutate(주중_유동인구= (월요일_유동인구_수+화요일_유동인구_수+ 수요일_유동인구_수 + 목요일_유동인구_수 + 금요일_유동인구_수)/5,
+                주말_유동인구= (토요일_유동인구_수+ 일요일_유동인구_수)/2)
+data2020_t <- data2020_t %>%
+  mutate(주중_유동인구= (월요일_유동인구_수+화요일_유동인구_수+ 수요일_유동인구_수 + 목요일_유동인구_수 + 금요일_유동인구_수)/5,
+                주말_유동인구= (토요일_유동인구_수+ 일요일_유동인구_수)/2)
+
+# 필요없는 요일별 유동인구 변수 제거
+drops<- c("월요일_유동인구_수","화요일_유동인구_수","수요일_유동인구_수","목요일_유동인구_수","금요일_유동인구_수","토요일_유동인구_수","일요일_유동인구_수")
+data2019_t <- data2019_t[ ,!(names(data2019_t) %in% drops)]
+data2020_t <- data2020_t[ ,!(names(data2020_t) %in% drops)]
+```
+
+추가로 상관관계가 높은 것으로 판명된 변수들 제외 시켜 주었다.
+
+```{r results='hide'}
+drops <- c( "지출_총금액","시간대_0_11","시간대_11_21", "시간대_21_24", "10_유동인구","20_30_유동인구","40_50_유동인구","60_유동인구","주중_유동인구","주말_유동인구","남성_유동인구_수", "여성_유동인구_수","남성_상주인구_수","40_50_직장인구","40_50_상주인구")
+data2019_t <- data2019_t[ ,!(names(data2019_t) %in% drops)]
+data2020_t <- data2020_t[ ,!(names(data2020_t) %in% drops)]
+```
+
+최종적으로 분석에 사용할 데이터를 새로운 변수에 저장해주었다. 종속변수로는 `총매출금액`, 독립변수로는 `점포수`를 포함한 총 30개의 변수를 선택하였다. 그리고 새로운 데이터에 상관관계를 다시 한번 확인해보았다.
+
+```{r}
+model2019 <- data2019_t[,3:32]
+head(model2019)
+model2020 <- data2020_t[,3:32]
+head(model2020)
+
+# 상관관계 매트릭스
+corData2019 <- model2019
+corData2019Corr <- within(corData2019, rm("총매출금액"))
+cor19 <- cor(corData2019Corr, method = c("spearman"))
+
+corData2020 <- model2020
+corData2020Corr <- within(corData2020, rm("총매출금액"))
+cor20 <- cor(corData2020Corr, method = c("spearman"))
+
+corrplot(cor19, tl.pos='n', title = "2019", mar=c(0,0,1,0))
+corrplot(cor20, tl.pos='n', title = "2020", mar=c(0,0,1,0))
+```
+
+상관관계가 높은 변수들이 많이 제거되었다. 아직 상관관계가 높아 보이는것들은 주성분 분석에서 해결할 수 있을것으로 보인다.
+
+## 4. 2차 주성분 분석과 다중 회귀 분석
+
+2019년
+
+```{r}
+indep19 <- model2019[,2:30]
+dep19 <- model2019[,1]
+
+# Tuckey Ladder of Powers로 종속변수와 독립변수를 변환
+par(mfrow=c(2,2))
+dep19T <- transformTukey(dep19[[1]])
+indep19T <- indep19 %>% map(transformTukey, quiet=TRUE, plotit=FALSE)
+indep19T <- indep19T %>% as.data.frame
+
+pca19 <- prcomp(indep19T, scale = T)
+summary(pca19)
+par(mfrow=c(1,1))
+```
+
+회귀 모형에 집어넣을 변수로 분산의 누적 합계, Cumulative proportion이 80%가 되는 PC8까지 선택하였다.
+
+```{r}
+pcs19 <- as.data.frame(pca19$x)
+pcs19 <- pcs19[1:8]
+input19 <- bind_cols(dep19T, pcs19)
+colnames(input19)[1] <- "totalSales"
+regModel19 <- lm(totalSales ~ ., data = input19)
+summary(regModel19)
+shapiro.test(regModel19$residuals)
+```
+
+2020년
+
+```{r}
+indep20 <- model2020[,2:30]
+dep20 <- model2020[,3]
+
+# Tuckey Ladder of Powers로 종속변수와 독립변수를 변환
+par(mfrow=c(2,2))
+dep20T <- transformTukey(dep20[[1]])
+indep20T <- indep20 %>% map(transformTukey, quiet=TRUE, plotit=FALSE)
+indep20T <- indep20T %>% as.data.frame
+
+pca20 <- prcomp(indep20T, scale = T)
+summary(pca20)
+par(mfrow=c(1,1))
+```
+
+2019년도와 동일하게 회귀 모형에 집어넣을 변수로 분산의 누적 합계, Cumulative proportion이 80%가 되는 PC8까지 선택하였다.
+
+```{r}
+pcs20 <- as.data.frame(pca20$x)
+pcs20 <- pcs20[1:9]
+input20 <- bind_cols(dep20T, pcs20)
+colnames(input20)[1] <- "totalSales"
+regModel20 <- lm(totalSales ~ ., data = input20)
+summary(regModel20)
+shapiro.test(regModel20$residuals)
+```
+
+아직도 2019, 2020년도 회귀식의 잔차가 모두 정규분포를 따르지 않아 회귀분석의 가정을 만족하지 못해 데이터를 살펴보고 사용할 변수를 선택하기로 하였다.
+
+## 5. 3차 주성분 분석과 다중 회귀 분석
+
+대표성을 가지는 총_xxx 로 시작하는 변수들을 위주로 선택하여 보았다. 
+
+2019년
+
+```{r}
+# 2019
+# 종속변수와 독립변수 나누기
+dep19 <- model2019[,1]
+indep19 <- model2019[,c(2:4, 7, 9, 10:12, 21:24)]
+
+# 관측값 변환
+# Tuckey Ladder of Powers로 종속변수와 독립변수를 변환
+par(mfrow=c(2,2))
+dep19T <- transformTukey(dep19[[1]])
+indep19T <- indep19 %>% map(transformTukey, quiet=TRUE, plotit=FALSE)
+indep19T <- indep19T %>% as.data.frame
+
+pca19 <- prcomp(indep19T, scale = TRUE)
+summary(pca19)
+par(mfrow=c(1,1))
+ggbiplot(pca19,alpha = 0.5, varname.size = 3.5) + ggtitle("2019")
+```
+
+해당 그래프는 2020년도의 PC1과 PC2의 Bi-plot으로 주성분 분석에 대한 행렬도이다.
+
+PC1은 거주구역을 나타내는데, 행렬도의 결과를 보면, 2019년에는 교육 지출 총금액과 문화 지출 총금액과 총 가구수와 총 상주인구수와 총 유동인구 수끼리 같은 방향을 향한다. 그리고 폐업 영업 개월 평균이랑 운영 영업개월 평균 끼리 같은 방향을 향하고 있고, 그리고 상권 변화 지표와 점포수와 총 직장인구 수와 월 평균 소득금액과 버스 정거장 수는 PC2를 기준으로 했을 때는 방향이 같지만, PC1을 기준으로 했을 때는 방향의 차이가 있기 때문에 다른 변수들과의 상관관계가 높아보이지 않는다.
+
+Cumulative proportion이 80%가 되는 PC4까지 선택하였다.
+
+```{r}
+pcs19 <- as.data.frame(pca19$x)
+pcs19 <- pcs19[1:4]
+input19 <- bind_cols(dep19T, pcs19)
+colnames(input19)[1] <- "totalSales"
+  
+regModel19 <- lm(totalSales ~ ., data = input19)
+  
+summary(regModel19)
+```
+
+2019년도의 회귀분석 결과에 대해선, 종속변수와 독립변수에 모두 Turkey변환을 해주었기 때문에 모델 해석 시 이러한 변환을 고려한 해석이 필요하다. 2019년도의 종속변수엔 0.1을 제곱해주었기 때문에 독립변수인 주성분이 한단위 증가할 수록 매출금액이 0.1승 증가한다고 해석할 수 있다.
+
+우선 회귀모델을 돌려본 결과 도출한 회귀식은 다음과 같다. 
+
+Y^0.1= 0.024879* PC1 + 0.395331*PC2 - 0.26485*PC3 + -0.107458*PC4 + 7.728242
+
+ - PC1, PC2, PC3, PC4 모든 변수들의 p-value값이 0.05이하로 총매출금액에 유의한 영향을 끼친다는 것을 알 수 있다. 
+ 
+ -  F 값은 409.5로 유의확률은 0.05보다 낮게 나타난다. 그렇기 때문에 해당 회귀모형이 의미있다고 해석할 수 있다. 
+ 
+ - R-squared값은 0.62, 조정된 R계수는 0.6184로 종속변수의 분산 중 독립변수에 의해 설명되는 분산이 약 62%임을 알 수 있다. 
+ 
+ - PC1의 회귀계수는 양수로 PC1의 Turkey변환된 독립변수들이 한단위 증가할 수록 총매출금액은 0.024879만큼 증가한다고 해석할 수 있다. PC1을 주로 구성하고 있는 변수는 총 상주인구수(음수), 총 가구수(음수), 문화지출 총금액(음수)로 총 상주인구 수와 총 가구수가 적어 상권에 거주민들이 별로 없고 문화지출에 쓰는 금액이 적은 상권일수록 
+매출액이 높아진다고 해석할 수 있다. 
+
+ - PC2의 회귀계수는 양수로 마찬가지로 종속변수에 긍정적인 영향을 끼친다. PC2를 주로 구성하는 변수는 점포수(양수), 상권변화지표(양수), 운영 영업개월 평균(음수)로 상권에 존재하는 점포 수가 많고 상권변화지표가 높고(신규 상권 개발에 유리하고)  점포를 운영하는 평균 개월 수가 낮은 상권일수록
+매출액이 높아진다고 해석할 수 있다. 
+
+ - PC3의 회귀계수는 음수로 총매출금액에 부정적인 영향을 끼친다. PC3을 구성하는 변수는 총 직장 인구 수(음수), 월 평균 소득 금액(음수), 폐업 영업개월 평균(음수)로 상권에 직장 인구 수가 낮고 상권 거주민들의 월 평균 소득 금액이 낮으며 폐업까지의 영업개월의 평균이 낮을수록
+매출액은 낮아진다고 해석할 수 있다. 
+
+ - PC4의 회귀계수도 음수로 종속변수에 부정적인 영향을 끼친다. PC4를 구성하는 변수는 버스 정거장 수로 상권에 버스 정거장 수가 적을수록 총 매출금액은 낮아진다는 것을 알 수 있다. 
+
+```{r}
+shapiro.test(regModel19$residuals)
+par(mfrow=c(2,2))
+plot(regModel19)
+```
+
+2019년도의 분석에 대한 shapiro테스트를 통해 잔차의 정규성을 확인해본 결과 p-value값이 0.05보다 크게 나왔기 때문에 잔차의 정규성을 검증할 수 있었다. 
+
+
+2020년
+
+```{r}
+# 2020
+# 종속변수와 독립변수 나누기
+dep20 <- model2020[,1]
+indep20 <- model2020[,c(2:4, 7, 9, 10:12, 21:24)]
+
+# 관측값 변환
+# Tuckey Ladder of Powers로 종속변수와 독립변수를 변환
+par(mfrow=c(2,2))
+dep20T <- transformTukey(dep20[[1]])
+indep20T <- indep20 %>% map(transformTukey, quiet=TRUE, plotit=FALSE)
+indep20T <- indep20T %>% as.data.frame
+
+pca20 <- prcomp(indep20T, scale = TRUE)
+summary(pca20)
+par(mfrow=c(1,1))
+ggbiplot(pca20,alpha = 0.5, varname.size = 3.5) + ggtitle("2020")
+```
+
+해당 그래프는 2020년도의 PC1과 PC2의 Bi-plot으로 주성분 분석에 대한 행렬도이다. 
+
+2020년에는 총 상주인구 수와 총 유동인구 수와 문화 지출 총금액과 교육 지출 총금액끼리 같은 방향을 향하고 있다. 그리고 운영 엉업 개월과 폐업 영업 개월 평균 끼리 같은 방향을 향하고 있다. 버스 정거장 수와 상권 변화 지표 수와 점포수와 총 직장인구 수와 월 평균 소득 금액은 PC2를 기준으로 했을 때는 같은 방향인데, PC1을 기준으로 했을 때는 방향에 차이가 나기 때문에 다른 변수들과의 상관관계가 높아 보이지 않는다. 
+
+Cumulative proportion이 80%가 되는 PC4까지 선택하였다.
+
+```{r}
+pcs20 <- as.data.frame(pca20$x)
+pcs20 <- pcs20[1:4]
+input20 <- bind_cols(dep20T, pcs20)
+colnames(input20)[1] <- "totalSales"
+  
+regModel20 <- lm(totalSales ~ ., data = input20)
+  
+summary(regModel20)
+```
+
+2020년도 데이터에 대한 주성분들을 대상으로 다중회귀분석한 결과, 종속변수와 독립변수에 모두 Turkey변환을 해주었기 때문에 모델 해석 시 이러한 변환을 고려한 해석이 필요하다. 2020년도의 종속변수엔 0.15를 제곱해주었기 때문에 독립변수인 주성분이 한단위 증가할 수록 매출금액이 0.15승 증가한다고 해석할 수 있다.
+우선 회귀모델을 돌려본 결과 도출한 회귀식은 다음과 같다. 
+
+Y^0.15= -1.64587*PC2 - 1.05107*PC3 + 0.37128*PC4 +21.28077
+
+ - PC2, PC3, PC4가 0.05이하로 종속변수인 총매출금액에 유의한 영향을 끼친다는 것을 알 수 있다. 
+ 
+ - F값은 381로 유의확률은 0.05보다 낮게 나타난다. F값에 따른 유의도가 0.05보다 낮기 때문에 회귀모형이 의미 없다는 영가설을 기각하고 회귀모형이 유의미하다는 대립가설을 채택하였다.
+ 
+ - R-squared값은 0.6028, Adjusted R-squared값은 0.6013으로 종속변수의 분산 중 독립변수에 의해 설명되는 분산이 약 60%임을 알 수 있다. 
+ 
+ - PC2의 회귀계수는 음수로 PC2의 Turkey변환된 구성성분들이 한 단위 증가할 수록 종속변수가 1.65만큼  줄어든다. PC2를 주로 구성하고 있는 변수는 운영영업개월평균(양수), 상권변화지표(음수), 점포수(음수)로 영업개월 평균이 높고 상권변화지표가 낮고(기존 상권유치에 유리하고) 
+점포수가 적을수록 총 매출금액이 낮아진다고 해석할 수 있다. 
+
+- PC3의 회귀계수는 음수로 이 역시 종속변수에 부정적인 영향을 끼치는 주성분이다. PC3을 주로 구성하고 있는 변수는 총 직장인구수(음수), 월평균소득금액(음수)으로 총 직장인구수가 적고 상권 배후지 주민들의 월평균 소득 금액이 작을수록 
+매출액에 부정적인 영향을 끼친다는 것을 알 수 있다. 
+
+- PC4의 회귀계수는 양수로 해당 주성분은 총매출금액에 긍정적인 영향을 끼친다는 것을 알 수 있다. PC4의 주성분은 버스정거장수(양수)로 버스정거장이 많을 수록 즉 버스에 접근성이 높을 수록 총매출금액은 증가한다고 해석할 수 있다. 
+
+
+```{r}
+shapiro.test(regModel20$residuals)
+par(mfrow=c(2,2))
+plot(regModel20)
+```
+
+회귀분석의 가정중 하나인 잔차가 정규성을 지니는지 확인해보기 위해 
+잔차의 정규성을 Shapirowilk nomality test로 알아본 결과 p-value가 0.05보다 크게 나왔기 때문에 귀무가설을 기각하고 잔차가 정규성을 지니고 있다는 대립가설을 채택할 수 있다. 
+
+
+2019년과 2020년도의 결과 해석을 비교해보자면, 
+
+ - 2019년도엔 상주인구 수, 총 가구 수가 낮아 상권에 거주하는 인구가 적을수록 매출액이 높아진다는 해석을 할 수 있었지만 2020년도에선 두 변수가 매출액에 어떠한 영향을 끼치지 않았음을 알 수 있다. 
+ 
+ - 2019년도엔 상권배후지에 거주하는 인구가 문화활동에 지출하는 금액이 적을수록 매출액이 증가한다는 결과가 있었지만 2020년도에선 이 변수가 매출액에 영향을 끼치는 변수가 아니었다. 
+ 
+ - 2019, 2020년도에 동일한 방향성의 영향을 끼치는 것으로 파악된 변수들에 대한 해석으로는, 상권 내에 점포 수가 많고 신규 상권개발에 유리한 상권으로 영업체의 운영 영업 개월의 평균이 낮을수록 매출금액이 높다. 
+ 
+또한 직장인수가 많아 해당 상권배후지에 회사가 많은 직장가일수록 매출금액은 높아진다. 그리고 상권배후지에 거주하는 거주민들의 월평균 소득 금액이 높으면 매출금액이 증가한다. 마지막으로 상권배후지에 버스 정거장 수가 많아 교통이 편리할 수록 총 매출 금액은 높아지는 것을 알 수 있었다. 
+
+
+### 결론
+
+저희 팀은 이번 분석을 통해 골목상권별 카페에 매출에 영향을 미칠 수 있는 다양한 변수들에 대한 다중회귀분석을 통해 어느 변수가 매출에 영향을 미치는지 알아보고자했습니다. 코로나 발생 전후의 데이터를 대상으로 두번의 주성분분석과 다중회귀 분석을 돌려 매출금액에 영향을 끼치는 변수들에 차이가 있는지 보고자 했습니다. 
+그 결과 2019년과 2020년도에 동일한 영향을 끼친 것으로 추정된 변수는 점포 수, 상권변화지표, 운영영업개월 평균, 직장인 수, 월평균 소득금액, 버스 정거장 수였으며 2019년에 영향을 끼쳤다가 2020년도엔 매출액에 영향을 끼치지 않은 것으로 추정되는 변수는 상주인구 수, 총 가구 수, 총 문화 지출액이었습니다.
+EDA를 통해 수집한 변수들의 조작하였으나 변수간의 상관관계를 줄이고 모델의 정규성을 만족시키기 위해 많은 변수를 제거할 수 밖에 없었던 한계가 있었습니다. 그럼에도 모델 잔차의 등분산성은 만족시킬 수 없었다는 한계점이 존재합니다. 
+데이터에서 발견할 수 있었던 한계점으로는 모든 분석을 상권의 예상 매출액만을 대상으로 진행했다는 것입니다. 실제로 상권의 흥망에 영향을 주는 변수들을 정확하게 찾기 위해선 상권의 지출액등 여러가지 요소 또한 고려한 분석이 필요할 것으로 보입니다. 
