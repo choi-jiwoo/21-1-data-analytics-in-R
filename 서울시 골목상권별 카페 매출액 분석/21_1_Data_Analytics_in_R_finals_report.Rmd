@@ -46,7 +46,7 @@ showtext_auto()
 | infrastructure              | 집객시설     |
 
 
-출처 : <https://data.seoul.go.kr/>
+출처 : https://data.seoul.go.kr/
 
 ### 2.1 데이터 준비
 
@@ -434,7 +434,9 @@ draw_money(temp, c("기준_년_코드","연령대_10_매출_금액","연령대_2
 
 점포수 대비가 아닌 단순 매출금액을 대상으로 상권들을 지도로 시각화해보면 다음과 같다. 
 
-(지도 데이터 출처 : http://www.gisdeveloper.co.kr/?p=2332_
+지도 데이터 출처 : http://www.gisdeveloper.co.kr/?p=2332_
+
+골목상권 좌표 출처 : https://data.seoul.go.kr/dataList/OA-15560/S/1/datasetView.do
 
 ```{r, echo=FALSE}
 # 상권코드 추출
@@ -700,7 +702,7 @@ ggplot(data2020, aes(x=Total_workpopulation2020, y=Total_sales2020, colour=Total
 
 종속변수들과 독립변수들이 정규분포를 따르게 변화시켜 분석을 실행하여 보았다. 변환에 사용한 방법은 Tuckey's Ladder of Powers 방법으로, 이는 데이터를 최대한 정규분포로 만들어주는 lambda 값을 찾고 이를 변수에 n제곱 시켜 값을 변환시켜준다.
 
-2019년
+#### 2019년
 
 ```{r}
 # 종속변수와 독립변수 나누기
@@ -729,7 +731,7 @@ summary(regModel19)
 shapiro.test(regModel19$residuals)
 ```
 
-2020년
+#### 2020년
 
 ```{r}
 indep20 <- data2020[,4:61]
