@@ -300,7 +300,6 @@ data2019 <- list(sales2019,
 
 sum(is.na(data2019))
 data2019[is.na(data2019)] <- 0
-modelData2019 <- data2019[4:61]
 # 2020
 data2020 <- list(sales2020,
                  EstimatedFloatingPopulation2020, 
@@ -312,7 +311,6 @@ data2020 <- list(sales2020,
 
 sum(is.na(data2020))
 data2020[is.na(data2020)] <- 0
-modelData2020 <- data2020[4:61]
 ```
 
 ## 3. EDA
@@ -458,7 +456,7 @@ location$상권_코드 <- as.factor(location$상권_코드)
 location <- location[!(location$상권_코드==1000750),]
   
 # 상권코드-상권코드명  
-codeAndlocation <- left_join(location, districtCode, by="상권_코드")
+# codeAndlocation <- left_join(location, districtCode, by="상권_코드")
 ```
 
 ```{r, echo=FALSE}
