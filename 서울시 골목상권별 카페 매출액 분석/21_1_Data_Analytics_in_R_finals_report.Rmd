@@ -80,7 +80,7 @@ files
 # 데이터를 한번에 다 불러오기
 csvFiles <- list()
 for(i in 1:length(files)){
-  code <- paste0("read_csv(paste0('data/', '", files[i],"'), locale = locale('ko', encoding = 'euc-kr'))") # 함수식 설정
+  code <- paste0("read_csv(paste0('data/', '", files[i],"'), locale = locale('ko', encoding = 'utf-8'))") # 함수식 설정
   result <- list(eval(parse(text=code))) # 함수식 실행
   result <- setNames(result, gsub("*.csv","",files[i])) # 이름을 파일명과 같이 설정
   csvFiles <- append(csvFiles, result) # 데이터를 리스트안에 몰아 넣기
@@ -444,7 +444,7 @@ districtCode <- csvFiles$numOfEmployee[5:6] %>% unique
 districtCode$상권_코드 <- as.factor(districtCode$상권_코드)
 
 # 골목상권 좌표 추출
-location <- read_csv("data/seoulGolmok.csv", locale = locale('ko', encoding = 'euc-kr'))
+location <- read_csv("data/seoulGolmok.csv", locale = locale('ko', encoding = 'utf-8'))
 oldCoord <- location[6:7]
 colnames(oldCoord) <- c("long","lat")
 coordinates(oldCoord) <- c("long","lat")
@@ -476,7 +476,7 @@ converted <- converted %>% as.data.frame
 seoulMap[1:2] <- converted
 
 # 서울시 구 좌표 추출
-sigCode <- read_csv("data/sig_code.csv", locale = locale('ko', encoding = 'euc-kr'))
+sigCode <- read_csv("data/sig_code.csv", locale = locale('ko', encoding = 'utf-8'))
 sigCode <- sigCode[c(3, 6:7)]
 colnames(sigCode) <- c("gu","lat","long")
 
