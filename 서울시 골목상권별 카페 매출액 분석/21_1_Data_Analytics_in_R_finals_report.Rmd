@@ -48,7 +48,7 @@ showtext_auto()
 
 출처 : https://data.seoul.go.kr/
 
-### 2.1 데이터 준비
+### 2.1 데이터 전처리
 
 ```{r}
 library(tidyverse)
@@ -91,7 +91,9 @@ for(i in 1:length(files)){
 
 `추정매출` 데이터는 2019, 2020 데이터가 구분되어 있어서 하나의 테이블로 합쳐주었다. 근데 변수명이 다르기 때문에 그냥 합칠 시 NA가 생기므로 변수명을 통일시켜주었다.
 
-카페에 해당되는 업종 코드명 "커피-음료"만 추출하였다. 다른 7개의 데이터에는 없는데 `추정매출에`만 있는 `서비스_업종_코드`, `서비스_업종_코드_명`도 삭제해주었다.
+`소득소비` 데이터의 `소득_구간_코드`가 문자열로 되어있어서 연단위로 합칠 수 없으므로 제거해 주었다.
+
+명목변수인 `상권_변화_지표`도 제거해 주고 카페에 해당되는 업종 코드명 "커피-음료"만 추출하였다. 다른 7개의 데이터에는 없는데 `추정매출에`만 있는 `서비스_업종_코드`, `서비스_업종_코드_명`도 삭제해주었다. 
 
 ```{r}
 # 변수명이 다른 위치 찾기
@@ -108,20 +110,6 @@ names(csvFiles)[1] <- "estimatedSales"
 csvFiles$estimatedSales$서비스_업종_코드_명 %>% unique
 csvFiles$estimatedSales <- csvFiles$estimatedSales %>% filter(`서비스_업종_코드_명` == "커피-음료")
 csvFiles$estimatedSales <- csvFiles$estimatedSales %>% within(rm("서비스_업종_코드", "서비스_업종_코드_명"))
-```
-
-`상권변화지표`는 데이터 특성상 가장 최신의 상태가 중요하기 때문에 따로 빼서 4분기 데이터만 사용하기위해 따로 분리시켰다.
-
-```{r}
-# 상권변화지표 데이터만 따로 분리
-districtState <- csvFiles$districtState
-csvFiles <- csvFiles %>% within(rm(districtState))
-```
-
-`소득소비` 데이터의 `소득_구간_코드`가 문자열로 되어있어서 연단위로 합칠 수 없으므로 제거해 주었다.
-
-```{r}
-csvFiles$earningsSpendings <- csvFiles$earningsSpendings %>% within(rm(소득_구간_코드))
 ```
 
 데이터가 2020년 4분기까지 밖에 없어서 비교를 위해 동일한 기간을 설정해주었다.
@@ -203,7 +191,7 @@ checkLength <- function(){
 checkLength()
 ```
 
-`추정매출` 데이터를 확인해보았다.
+2019년과 2020년의 `추정매출` 데이터 길이가 다르기 때문에 확인해보았다.
 
 ```{r}
 anti_join(dataList2019$estimatedSales$상권_코드 %>% as.data.frame, dataList2020$estimatedSales$상권_코드 %>% as.data.frame)
@@ -219,10 +207,6 @@ for(i in 1:length(dataList2019)){
 }
 checkLength()
 ```
-
-잘 지워졌다.
-
-상권변화지표는 상권배후지 데이터가 없어서 다른 데이터에는 없는 상권 데이터들은 제거해주었다. 그리고 추가로 `상권_변화_지표`가 명목변수이기 때문에 숫자 범주형 데이터로 만들어주었다. 위에서 제거해주었던 1000750에 해당되는 데이터들도 제거해주었다.
 
 ```{r}
 trimData <- function(data){
@@ -286,7 +270,7 @@ districtState2019 <- districtState2019[c(1, 5, 7, 9, 10)]
 districtState2020 <- districtState2020[c(1, 5, 7, 9, 10)]
 ```
 
-분석을 위해 하나의 테이블로 만들기
+분석을 위해 하나의 테이블로 만들어주었다.
 
 ```{r}
 # 2019
@@ -700,9 +684,7 @@ ggplot(data2020, aes(x=Total_workpopulation2020, y=Total_sales2020, colour=Total
 
 ## 4. 주성분 분석과 다중 회귀 분석
 
-종속변수들과 독립변수들이 정규분포를 따르게 변화시켜 분석을 실행하여 보았다. 변환에 사용한 방법은 Tuckey's Ladder of Powers 방법으로, 이는 데이터를 최대한 정규분포로 만들어주는 lambda 값을 찾고 이를 변수에 n제곱 시켜 값을 변환시켜준다.
-
-#### 2019년
+종속변수 `총매출금액`을 확인해 보았다.
 
 ```{r}
 # 종속변수와 독립변수 나누기
