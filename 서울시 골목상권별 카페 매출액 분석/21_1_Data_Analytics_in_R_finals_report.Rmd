@@ -200,20 +200,6 @@ trimData <- function(data){
   data <- subset(data, `상권_코드` != 1000750)
   return(data)
 }
-
-# 상권변화지표코드 참고용 룩업테이블
-stateCode <- districtState$`상권_변화_지표` %>% unique
-stateCodeName <- districtState$`상권_변화_지표_명` %>% unique
-stateCodeLabel <- factor(districtState$`상권_변화_지표`) %>% unique %>% as.integer
-
-districtStateLookupTable <- data.frame(stateCode = stateCode,
-                                       stateCodeName = stateCodeName,
-                                       stateCodeLabel = stateCodeLabel)
-
-districtState <- cutTime(districtState)
-districtState2019 <- trimData(districtState[[1]])
-districtState2020 <- trimData(districtState[[2]])
-
 checkLength()
 ```
 
@@ -237,7 +223,6 @@ SettledPopulation2020 <- dataList2020$settledPopulation[c(1:11, 24)]
 earningsSpendings2019 <- dataList2019$earningsSpendings[c(1:4,11,12)]
 earningsSpendings2020 <- dataList2020$earningsSpendings[c(1:4,11,12)]
 # 집객시설
-# 2019년 집객시설 데이터와 2020년 집객시설 데이터에서 사용할 변수들의 열만 추출해서 하나의 데이터 파일로 합치기
 infrastructure2019 <- dataList2019$infrastructure[c(1,2,4,9:12,16,17,21,22)]
 infrastructure2020 <- dataList2020$infrastructure[c(1,2,4,9:12,16,17,21,22)]
 
@@ -247,10 +232,6 @@ sales2020 <- dataList2020$estimatedSales[c(1:3, 74)]
 # 분기당 매출금액 변수명을 '총매출금액'으로 통일
 colnames(sales2019)[3] <- "총매출금액"
 colnames(sales2020)[3] <- "총매출금액"
-
-# 상권변화지표
-districtState2019 <- districtState2019[c(1, 5, 7, 9, 10)]
-districtState2020 <- districtState2020[c(1, 5, 7, 9, 10)]
 ```
 
 분석을 위해 하나의 테이블로 만들어주었다.
@@ -262,8 +243,7 @@ data2019 <- list(sales2019,
                  EmployeeNum2019, 
                  SettledPopulation2019, 
                  earningsSpendings2019, 
-                 infrastructure2019, 
-                 districtState2019) %>% reduce(left_join, by = c("상권_코드", "기준_년_코드"))
+                 infrastructure2019) %>% reduce(left_join, by = c("상권_코드", "기준_년_코드"))
 
 sum(is.na(data2019))
 data2019[is.na(data2019)] <- 0
@@ -273,8 +253,7 @@ data2020 <- list(sales2020,
                  EmployeeNum2020, 
                  SettledPopulation2020, 
                  earningsSpendings2020, 
-                 infrastructure2020, 
-                 districtState2020) %>% reduce(left_join, by = c("상권_코드", "기준_년_코드"))
+                 infrastructure2020) %>% reduce(left_join, by = c("상권_코드", "기준_년_코드"))
 
 sum(is.na(data2020))
 data2020[is.na(data2020)] <- 0
@@ -423,9 +402,6 @@ location <- bind_cols(location, newCoord)
 location <- location[c(4, 11:12)]
 location$상권_코드 <- as.factor(location$상권_코드)
 location <- location[!(location$상권_코드==1000750),]
-  
-# 상권코드-상권코드명  
-# codeAndlocation <- left_join(location, districtCode, by="상권_코드")
 ```
 
 ```{r, echo=FALSE}
