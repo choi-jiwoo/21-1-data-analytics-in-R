@@ -94,16 +94,8 @@ for(i in 1:length(files)){
 명목변수인 `상권_변화_지표`도 제거해 주고 카페에 해당되는 업종 코드명 "커피-음료"만 추출하였다. 다른 7개의 데이터에는 없는데 `추정매출에`만 있는 `서비스_업종_코드`, `서비스_업종_코드_명`도 삭제해주었다. 
 
 ```{r}
-# 변수명이 다른 위치 찾기
-diffVar <- which(names(csvFiles$estimatedSales2019) != names(csvFiles$estimatedSales2020))
-
-# 2020년도 데이터의 변수명을 기준으로 변경
-names(csvFiles$estimatedSales2019)[diffVar] <- names(csvFiles$estimatedSales2020)[diffVar]
-
-estimatedSales <- bind_rows(csvFiles$estimatedSales2019, csvFiles$estimatedSales2020)
-csvFiles <- csvFiles %>% within(rm(estimatedSales2019, estimatedSales2020))
-csvFiles <- append(csvFiles, list(estimatedSales), after = 0)
-names(csvFiles)[1] <- "estimatedSales"
+# earningsSpendings에서 소득_구간_코드 열 제거
+csvFiles$earningsSpendings <- csvFiles$earningsSpendings %>% within(rm(소득_구간_코드))
 
 csvFiles$estimatedSales$서비스_업종_코드_명 %>% unique
 csvFiles$estimatedSales <- csvFiles$estimatedSales %>% filter(`서비스_업종_코드_명` == "커피-음료")
@@ -114,8 +106,7 @@ csvFiles$estimatedSales <- csvFiles$estimatedSales %>% within(rm("서비스_업�
 
 ```{r}
 # 데이터 기간 설정
-time2019 <- 2019
-time2020 <- 2020
+year <- 2020
 exclude_quarter <- 1
 
 # 데이터들의 1열~6열까지 변수명을 통일
@@ -126,41 +117,24 @@ for(i in 1:length(csvFiles)){
 # 분기별 데이터를 연간 데이터로 합쳐주는 함수
 aggregateYearly <- function(data){
   data <- data %>% within(rm("기준_분기_코드", "상권_구분_코드", "상권_구분_코드_명", "상권_코드_명"))
-  data <- data %>% group_by(`상권_코드`, `기준_년_코드`) %>% dplyr::summarise(across(everything(), mean)) # 분기별로 나눠져있는 변수들을 평균값으로 합쳐서 연단위로 
+  # 분기별로 나눠져있는 변수들을 연단위로 합치기
+  data <- data %>% group_by(`상권_코드`, `기준_년_코드`) %>% dplyr::summarise(across(everything(), sum) %>% round(0), .groups="keep")
   return(data)
 }
 
-# 2019년, 2020년 각각 2,3,4분기만 남기는 함수
-cutTime <- function(data, option){
-  # data : 데이터
-  # option : 1=연간 평균으로 합치기
+# 2,3,4분기만 남기는 함수
+cutTime <- function(data){
   data <- data %>% filter(`기준_분기_코드` != exclude_quarter)
-  data2019 <- data %>% filter(`기준_년_코드` == time2019)
-  data2020 <- data %>% filter(`기준_년_코드` == time2020)
-  
-  if(missing(option)){
-    print("skipped aggregating...")
-  } else {
-    data2019 <- aggregateYearly(data2019)
-    data2020 <- aggregateYearly(data2020)  
-  }
-  
-  return(list(data2019, data2020))
+  data <- data %>% filter(`기준_년_코드` == year)
+  data2020 <- aggregateYearly(data)
+  return(list(data2020))
 }
 
-dataList2019 <- list()
 dataList2020 <- list()
 
 for(i in 1:length(csvFiles)){
-  # 2019
-  cutData <- cutTime(csvFiles[[i]], 1)
-  
+  cutData <- cutTime(csvFiles[[i]])
   result <- list(cutData[[1]])
-  result <- setNames(result, names(csvFiles[i]))
-  dataList2019 <- append(dataList2019, result)
-  
-  # 2020
-  result <- list(cutData[[2]])
   result <- setNames(result, names(csvFiles[i]))
   dataList2020 <- append(dataList2020, result)
 }
@@ -171,19 +145,14 @@ rm(result) # 더이상 필요없는 변수 삭제
 
 ```{r}
 checkLength <- function(){
-  recordLength19 <- list()
   recordLength20 <- list()
 
   for(i in 1:length(csvFiles)){
-    result <- nrow(dataList2019[[i]])
-    result <- setNames(result, names(dataList2019[i]))
-    recordLength19 <- append(recordLength19, result)
-    
-    result2 <- nrow(dataList2020[[i]])
-    result2 <- setNames(result2, names(dataList2020[i]))
-    recordLength20 <- append(recordLength20, result2)
+    result <- nrow(dataList2020[[i]])
+    result <- setNames(result, names(dataList2020[i]))
+    recordLength20 <- append(recordLength20, result)
   }
-  bind_rows(as.data.frame(recordLength19), as.data.frame(recordLength20)) %>% t
+  as.data.frame(recordLength20) %>% t
 }
 
 checkLength()
@@ -192,28 +161,19 @@ checkLength()
 `추정매출` 데이터에 관측값이 하나 모자르기 때문에 확인해보았다.
 
 ```{r}
-anti_join(dataList2019$estimatedSales$상권_코드 %>% as.data.frame, dataList2020$estimatedSales$상권_코드 %>% as.data.frame)
-csvFiles$estimatedSales[csvFiles$estimatedSales$상권_코드 == 1000750,] %>% group_by(`상권_코드_명`) %>% summarise(mean(`분기당_매출_금액`))
-```
+diff <- setdiff(dataList2020$earningsSpendings$상권_코드, dataList2020$estimatedSales$상권_코드)
+diff
 
-```{r}
-for(i in 1:length(dataList2019)){
-  dataList2019[[i]] <- subset(dataList2019[[i]], `상권_코드` != 1000750)
-  dataList2020[[i]] <- subset(dataList2020[[i]], `상권_코드` != 1000750)
-}
-checkLength()
+csvFiles$estimatedSales[csvFiles$estimatedSales$상권_코드 == diff,] %>%
+  group_by(`상권_코드_명`) %>%
+  summarise(mean(`분기당_매출_금액`))
 ```
 
 상권코드가 1000750인 사당로23길 상권에 매출 데이터가 없는것 같다. 따라서 다른 데이터들에도 1000750 상권의 데이터를 삭제해 주었다.
 
 ```{r}
-trimData <- function(data){
-  data <- data %>% filter(`기준_분기_코드` == 4)
-  diffCode <- anti_join(data$상권_코드 %>% as.data.frame, dataList2019$estimatedSales$상권_코드 %>% as.data.frame)
-  data <- data %>% filter(`상권_코드` != diffCode[[1]])
-  data$`상권_변화_지표` <- as.integer(factor(data$`상권_변화_지표`))
-  data <- subset(data, `상권_코드` != 1000750)
-  return(data)
+for(i in 1:length(dataList2020)){
+  dataList2020[[i]] <- subset(dataList2020[[i]], `상권_코드` != diff)
 }
 checkLength()
 ```
@@ -224,45 +184,30 @@ checkLength()
 
 ```{r}
 # 유동인구
-EstimatedFloatingPopulation2019 <- dataList2019$estimatedFloatingPopulation[1:24]
 EstimatedFloatingPopulation2020 <- dataList2020$estimatedFloatingPopulation[1:24]
+
 # 직장인수
-EmployeeNum2019 <- dataList2019$numOfEmployee[1:11]
 EmployeeNum2020 <- dataList2020$numOfEmployee[1:11]
+
 # 상주인구
-SettledPopulation2019 <- dataList2019$settledPopulation[c(1:11, 24)]
 SettledPopulation2020 <- dataList2020$settledPopulation[c(1:11, 24)]
 
 # 소득소비
-# 2019년 소득소비 데이터와 2020년 소득소비 데이터에서 사용할 변수들의 열만 추출해서 하나의 데이터 파일로 합치기
-earningsSpendings2019 <- dataList2019$earningsSpendings[c(1:4,11,12)]
-earningsSpendings2020 <- dataList2020$earningsSpendings[c(1:4,11,12)]
+earningsSpendings2020 <- dataList2020$earningsSpendings
+
 # 집객시설
-infrastructure2019 <- dataList2019$infrastructure[c(1,2,4,9:12,16,17,21,22)]
-infrastructure2020 <- dataList2020$infrastructure[c(1,2,4,9:12,16,17,21,22)]
+infrastructure2020 <- dataList2020$infrastructure[c(1:2, 4, 9:13, 16, 21:22)]
 
 # 추정매출
-sales2019 <- dataList2019$estimatedSales[c(1:3, 74)]
 sales2020 <- dataList2020$estimatedSales[c(1:3, 74)]
+
 # 분기당 매출금액 변수명을 '총매출금액'으로 통일
-colnames(sales2019)[3] <- "총매출금액"
 colnames(sales2020)[3] <- "총매출금액"
 ```
 
 분석을 위해 하나의 테이블로 만들어주었다.
 
 ```{r}
-# 2019
-data2019 <- list(sales2019,
-                 EstimatedFloatingPopulation2019, 
-                 EmployeeNum2019, 
-                 SettledPopulation2019, 
-                 earningsSpendings2019, 
-                 infrastructure2019) %>% reduce(left_join, by = c("상권_코드", "기준_년_코드"))
-
-sum(is.na(data2019))
-data2019[is.na(data2019)] <- 0
-# 2020
 data2020 <- list(sales2020,
                  EstimatedFloatingPopulation2020, 
                  EmployeeNum2020, 
