@@ -350,7 +350,7 @@ districtCode <- csvFiles$numOfEmployee[5:6] %>% unique
 districtCode$상권_코드 <- as.factor(districtCode$상권_코드)
 
 # 골목상권 좌표 추출
-location <- read_csv("data/seoulGolmok.csv", locale = locale('ko', encoding = 'utf-8'))
+location <- read_csv("data/eda/seoulGolmok.csv", locale = locale('ko', encoding = 'utf-8'))
 oldCoord <- location[6:7]
 colnames(oldCoord) <- c("long","lat")
 coordinates(oldCoord) <- c("long","lat")
@@ -379,7 +379,7 @@ converted <- converted %>% as.data.frame
 seoulMap[1:2] <- converted
 
 # 서울시 구 좌표 추출
-sigCode <- read_csv("data/sig_code.csv", locale = locale('ko', encoding = 'utf-8'))
+sigCode <- read_csv("data/eda/sig_code.csv", locale = locale('ko', encoding = 'utf-8'))
 sigCode <- sigCode[c(3, 6:7)]
 colnames(sigCode) <- c("gu","lat","long")
 
