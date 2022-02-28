@@ -601,4 +601,10 @@ ggplot(data2020, aes(x=Total_workpopulation2020, y=Total_sales2020, colour=Total
 
 ## 4. 주성분 분석과 다중 회귀 분석
 
+```{r}
+names(data2020)
+col.length <- length(data2020)
+cor <- cor(data2020[, 3:col.length], method = c("spearman"))
+corrplot(cor, tl.pos='n', mar=c(0,0,1,0))
+```
 ## 5. 결론
