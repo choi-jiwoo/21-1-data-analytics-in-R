@@ -668,4 +668,15 @@ pca <- function (data) {
 }
 
 ```
+```{r}
+par(mfrow=c(2,2))
+res <- pca(data2020)
+pca.res <- res[[1]]
+
+fviz_pca_biplot(pca.res, repel = FALSE, alpha.ind = 0.5, col.var = "#cc3300", col.ind = "#696969", label = c("var"))
+
+pc.cut <- 4
+pca.loadings <- pca.res$rotation[,1:pc.cut]
+pca.loadings
+```
 ## 5. 결론
