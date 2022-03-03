@@ -655,4 +655,17 @@ data2020 <- subset(data2020, select=-c(7:18, 21:26, 29:34))
 # 매출액이 앞도적으로 높은 명동길 제거
 data2020 <- subset(data2020, 상권_코드!=1000039)
 ```
+```{r}
+pca <- function (data) {
+  res = list()
+  dep.var <- transformTukey(data$총매출금액)
+  lambda <- transformTukey(data$총매출금액, plotit = FALSE,, quiet = TRUE, returnLambda = TRUE)
+  indep.var <- data[, -c(1:3)]
+  indep.var <- indep.var^lambda
+  pca <- prcomp(indep.var, center=TRUE, scale.=TRUE)
+  print(summary(pca))
+  return(list(pca, dep.var, indep.var))
+}
+
+```
 ## 5. 결론
