@@ -667,6 +667,11 @@ pca <- function (data) {
   return(list(pca, dep.var, indep.var))
 }
 
+pcr <- function (x) {
+  model <- lm(총매출금액 ~ ., data = x)
+  print(summary(model))
+  return(model)
+}
 ```
 ```{r}
 par(mfrow=c(2,2))
