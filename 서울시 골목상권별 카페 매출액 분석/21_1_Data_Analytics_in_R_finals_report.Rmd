@@ -696,12 +696,26 @@ pca.loadings <- pca.res$rotation[,1:pc.cut]
 pca.loadings
 ```
 ```{r}
-par(mfrow=c(2,2))
 dep.var <- res[[2]]
 pcs <- as.data.frame(pca.res$x)
 pcs.cut <- pcs[1:pc.cut]
 x <- bind_cols(dep.var, pcs.cut)
 colnames(x) <- c("총매출금액", "주거지역", "업무지구", "유동인구", "공공기관")
 model <- pcr(x = x)
+```
+```{r}
+tab_model(model,
+          show.se = TRUE,
+          show.ci = FALSE,
+          show.stat = TRUE,
+          pred.labels = c("(Intercept)", "주거지역", "업무지구", "유동인구", "공공기관"),
+          dv.labels = "총매출금액")
+```
+```{r}
+shapiro.test(model$residuals)
+```
+```{r}
+par(mfrow=c(2,2))
+plot(model)
 ```
 ## 5. 결론
