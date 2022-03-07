@@ -3,4 +3,4 @@
 학기 중 R을 사용해 작성한 분석 보고서
 
 1. [국민 청원 게시글 데이터를 활용한 감성 분석](https://github.com/cho2ji/covid19-petitions-analysis/tree/master/%EA%B5%AD%EB%AF%BC%20%EC%B2%AD%EC%9B%90%20%EA%B2%8C%EC%8B%9C%EA%B8%80%20%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%A5%BC%20%ED%99%9C%EC%9A%A9%ED%95%9C%20%EA%B0%90%EC%84%B1%20%EB%B6%84%EC%84%9D)
-2. [서울시 골목상권별 카페 매출액 분석](https://github.com/cho2ji/21-1-data-analytics-in-R/tree/master/%EC%84%9C%EC%9A%B8%EC%8B%9C%20%EA%B3%A8%EB%AA%A9%EC%83%81%EA%B6%8C%EB%B3%84%20%EC%B9%B4%ED%8E%98%20%EB%A7%A4%EC%B6%9C%EC%95%A1%20%EB%B6%84%EC%84%9D)
+2. [서울시 골목상권 카페업종 분석](https://github.com/choi-jiwoo/21-1-data-analytics-in-R/tree/master/%EC%84%9C%EC%9A%B8%EC%8B%9C%20%EA%B3%A8%EB%AA%A9%EC%83%81%EA%B6%8C%20%EC%B9%B4%ED%8E%98%EC%97%85%EC%A2%85%20%EB%B6%84%EC%84%9D)
