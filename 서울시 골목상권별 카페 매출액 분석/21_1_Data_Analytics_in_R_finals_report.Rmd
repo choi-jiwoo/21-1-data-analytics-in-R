@@ -614,6 +614,21 @@ cor <- cor(data2020[, 3:col.length], method = c("spearman"))
 corrplot(cor, tl.pos='n', mar=c(0,0,1,0))
 ```
 ```{r}
+# 총계 변수 제거
+drops <- c("총_유동인구_수",
+           "총_직장_인구_수",
+           "총_상주인구_수",
+           "지출_총금액")
+data2020 <- data2020[ ,!(names(data2020) %in% drops)]
+
+# 연령대와 시간대 등으로 나눈 변수 제거
+
+data2020 <- subset(data2020, select=-c(7:18, 28:33, 36:41))
+```
+```{r}
+data2020 <- subset(data2020, 상권_코드!=1000039)
+```
+```{r}
 data2020 <- data2020 %>% mutate(학교_수 = 유치원_수 +
                                           초등학교_수 +
                                           중학교_수 +
@@ -647,20 +662,10 @@ data2020 <- data2020 %>% mutate(주말_유동인구_수 = 토요일_유동인구
 drops <- c("토요일_유동인구_수",
            "일요일_유동인구_수")
 data2020 <- data2020[ ,!(names(data2020) %in% drops)]
-
-# 총계 변수 제거
-drops <- c("총_유동인구_수",
-           "총_직장_인구_수",
-           "총_상주인구_수",
-           "지출_총금액")
-data2020 <- data2020[ ,!(names(data2020) %in% drops)]
-
-# 연령대와 시간대 등으로 나눈 변수 제거
-data2020 <- subset(data2020, select=-c(7:18, 21:26, 29:34))
-
-# 매출액이 앞도적으로 높은 명동길 제거
-data2020 <- subset(data2020, 상권_코드!=1000039)
 ```
+
+
+
 ```{r}
 pca <- function (data) {
   res = list()
