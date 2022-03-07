@@ -2,7 +2,7 @@
 
 ## 분석보고서
 
-[21_1_Data_Analytics_in_R_finals_report.Rmd](https://github.com/cho2ji/21-1-data-analytics-in-R/blob/master/%EC%84%9C%EC%9A%B8%EC%8B%9C%20%EA%B3%A8%EB%AA%A9%EC%83%81%EA%B6%8C%EB%B3%84%20%EC%B9%B4%ED%8E%98%20%EB%A7%A4%EC%B6%9C%EC%95%A1%20%EB%B6%84%EC%84%9D/21_1_Data_Analytics_in_R_finals_report.Rmd)
+보고서 내용은 [rpubs](https://rpubs.com/cho2jiwoo/874720)에서 확인해 보실 수 있습니다.
 
 ## 데이터
 
