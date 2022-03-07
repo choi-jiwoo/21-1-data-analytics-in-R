@@ -233,11 +233,8 @@ data2020[is.na(data2020)] <- 0
 
 다음으로 상권별 총 매출금액에 따른 상권의 빈도 분포를 히스토그램으로 그려보았다. 
 
-```{r, echo=FALSE}
-ggplot(sales2019, aes(x=총매출금액)) +
-  geom_histogram(fill='skyblue', colour='black')+
-  ggtitle('2019년도 총 매출 금액 히스토그램')
 
+```{r}
 ggplot(sales2020, aes(x=총매출금액)) +
   geom_histogram(fill='skyblue', colour='black')+
   ggtitle('2020년도 총 매출 금액 히스토그램')
@@ -249,15 +246,13 @@ ggplot(sales2020, aes(x=총매출금액)) +
 
 2019년과 2020년의 분기별 총 매출금액의 변화를 라인그래프를 통해 알아보았다.  
 
-```{r, echo=FALSE}
-temp <- estimatedSales %>%
-                filter(서비스_업종_코드_명=='커피-음료') %>%
-                filter(기준_년_코드 == 2019 | 기준_년_코드 == 2020)%>%
-                group_by(기준_년_코드, 기준_분기_코드) %>%
+```{r}
+temp <- csvFiles$estimatedSales %>%
+                group_by(기준_분기_코드) %>%
                 dplyr::summarise(money= mean(분기당_매출_금액))
 
 
-ggplot(temp, aes(x=기준_분기_코드, y=money, group= 기준_년_코드,colour=factor(기준_년_코드) ))+
+ggplot(temp, aes(x=기준_분기_코드, y=money))+
   geom_line()
 ```
 
@@ -269,28 +264,17 @@ ggplot(temp, aes(x=기준_분기_코드, y=money, group= 기준_년_코드,colou
 
 다음은 주중 주말의 매출금액에 대한 그래프이다.
 
-```{r, echo=FALSE}
-# 평균으로 매출금액 집계
-avgSales2019 <- dataList2019$estimatedSales[28:50] %>% colMeans() %>% t %>% as.data.frame
-avgSales2020 <- dataList2020$estimatedSales[28:50] %>% colMeans() %>% t %>% as.data.frame
-
-temp<- rbind(avgSales2019, avgSales2020)
-year <- data.frame(`기준_년_코드` = c(2019,2020))
-temp <- bind_cols(year, temp)
-
-# 그래프 그리는 함수 작성
-draw_money<-function(df, varNames){
-  sale_weekday<- df %>% dplyr::select(varNames)
-  sale_weekday<- melt(as.data.frame(sale_weekday), id.vars= c("기준_년_코드"), measure.vars= varNames[-1])
-  
-  ggplot(sale_weekday, aes(x= variable, y= value))+
-    geom_bar(stat="identity") + facet_wrap(~기준_년_코드, nrow=1)+
-    theme(axis.text.x=element_text(angle=25, hjust=1, size=7))
+```{r}
+draw.money <- function(df, var.names){
+  df <- df %>% dplyr::select(var.names)
+  df.t <- df %>% t
+  plot_ly(x = rownames(df.t), y = df.t[, 1], type = "bar")
 }
-```
 
-```{r, echo=FALSE}
-draw_money(temp, c("기준_년_코드", "주중_매출_금액","주말_매출_금액"))
+# 평균으로 매출금액 집계
+avgSales2020 <- dataList2020$estimatedSales[28:50] %>% colMeans() %>% t %>% as.data.frame
+var.names <- c("주중_매출_금액","주말_매출_금액")
+draw.money(avgSales2020, var.names)
 ```
 
 주말보다는 주중에 매출이 더 많다. 2020년엔 2019년에 비해 그 스케일이 조금 줄어들었다. 변수에서 주중과 주말을 나누어 볼 필요가 있어보인다. 
@@ -299,8 +283,8 @@ draw_money(temp, c("기준_년_코드", "주중_매출_금액","주말_매출_�
 
 각 요일 별 매출금액에 대한 그래프이다. 
 
-```{r, echo=FALSE}
-draw_money(temp, c("기준_년_코드", "월요일_매출_금액","화요일_매출_금액", "수요일_매출_금액", "목요일_매출_금액", "금요일_매출_금액", "토요일_매출_금액", "일요일_매출_금액"))
+```{r}
+draw.money(avgSales2020, c("월요일_매출_금액","화요일_매출_금액", "수요일_매출_금액", "목요일_매출_금액", "금요일_매출_금액", "토요일_매출_금액", "일요일_매출_금액"))
 ```
 
 요일별 매출금액의 경우 일요일의 매출이 가장 낮다. 그리고 두 기간의 다른 요일들에 비해 2020년 월요일의 매출금액이 2019년 월요일의 매출금액보다 더욱 낮아졌음을 볼 수 있다. 
@@ -309,8 +293,8 @@ draw_money(temp, c("기준_년_코드", "월요일_매출_금액","화요일_매
 
 시간대 별 매출금액에 대한 그래프이다. 
 
-```{r, echo=FALSE}
-draw_money(temp, c("기준_년_코드","시간대_00~06_매출_금액","시간대_06~11_매출_금액","시간대_11~14_매출_금액","시간대_14~17_매출_금액","시간대_17~21_매출_금액","시간대_21~24_매출_금액"))
+```{r}
+draw.money(avgSales2020, c("시간대_00~06_매출_금액","시간대_06~11_매출_금액","시간대_11~14_매출_금액","시간대_14~17_매출_금액","시간대_17~21_매출_금액","시간대_21~24_매출_금액"))
 ```
 
 시간대별 매출금액의 경우 점심시간 전후인 11시에서 14시 사이의 매출금액이 가장 높다.매출 피크 시간대인 11시 부터 저녁 9시까지와 비피크 시간대를 나눠 볼 필요가 있어보인다. 
@@ -318,17 +302,21 @@ draw_money(temp, c("기준_년_코드","시간대_00~06_매출_금액","시간�
 
 #### 3.1.6. 2019년과 2020년의 변수 별 매출금액 평균 - 성별
 
-```{r, echo=FALSE}
-draw_money(temp, c("기준_년_코드","남성_매출_금액","여성_매출_금액" ))
+```{r}
+draw.money(avgSales2020, c("남성_매출_금액","여성_매출_금액" ))
 ```
 
 성별 매출금액을 보았을 때, 여성이 남성보다 카페에 더 많은 돈을 사용한다는 것을 알 수 있다. 2020년엔 2019년에 비해 남성보다 여성의 매출금액 감소폭이 더욱 크다. 성별에 따라 변수를 나누는 것이 좋을 것으로 보인다. 
 
 #### 3.1.7. 2019년과 2020년의 변수 별 매출금액 평균 - 연령대
 
-```{r, echo=FALSE}
-draw_money(temp, c("기준_년_코드","연령대_10_매출_금액","연령대_20_매출_금액","연령대_30_매출_금액","연령대_40_매출_금액" ,
-                   "연령대_50_매출_금액","연령대_60_이상_매출_금액"))
+```{r}
+draw.money(avgSales2020, c("연령대_10_매출_금액",
+                           "연령대_20_매출_금액",
+                           "연령대_30_매출_금액",
+                           "연령대_40_매출_금액",
+                           "연령대_50_매출_금액",
+                           "연령대_60_이상_매출_금액"))
 ```
 
 연령대 별 매출금액의 경우, 10대의 카페 매출액이 가장 낮고 20대가 가장 매출액이 높다. 그리고 60대로 갈 수록 매출액이 점차 낮아지는 양상을 보인다. 2019년에 비해 2020년의 20대 매출금액이 가장 큰 폭으로 감소하였음을 알 수 있다. 가장 낮은 매출액을 보이는 10대와 가장 높은 매출을 보이는 20대, 그리고 가장 낮은 매출을 보이는 60대를 각각 나누어 봐야 할 필요성이 있다. 
@@ -347,7 +335,7 @@ draw_money(temp, c("기준_년_코드","연령대_10_매출_금액","연령대_2
 
 골목상권 좌표 출처 : https://data.seoul.go.kr/dataList/OA-15560/S/1/datasetView.do
 
-```{r, echo=FALSE}
+```{r}
 # 상권코드 추출
 districtCode <- csvFiles$numOfEmployee[5:6] %>% unique
 districtCode$상권_코드 <- as.factor(districtCode$상권_코드)
@@ -367,7 +355,7 @@ location$상권_코드 <- as.factor(location$상권_코드)
 location <- location[!(location$상권_코드==1000750),]
 ```
 
-```{r, echo=FALSE}
+```{r}
 mapShp <- shapefile("SIG/TL_SCCO_SIG.shp")
 map <- fortify(mapShp, region="SIG_CD")
 map$id <- as.numeric(map$id)
@@ -391,36 +379,19 @@ g <- seoulMap %>% ggplot() +
   geom_text(data=sigCode, aes(x=long, y=lat, label=gu), size=2.5)
 ```
 
-```{r, echo=FALSE}
-sales2019$상권_코드 <- as.factor(sales2019$상권_코드)
-mapping <- left_join(location, sales2019[,c(1,3)], by="상권_코드")
+```{r}
+sales2020$상권_코드 <- as.factor(sales2020$상권_코드)
+mapping <- left_join(location, sales2020[,c(1,3)], by="상권_코드")
 mapping <- mapping %>% arrange(`총매출금액`)
 
-sales2020$상권_코드 <- as.factor(sales2020$상권_코드)
-mapping2 <- left_join(location, sales2020[,c(1,3)], by="상권_코드")
-mapping2 <- mapping2 %>% arrange(`총매출금액`)
-
-plotSales <- function(mapping, mapping2){
-  before <- g + geom_point(data=mapping, aes(x=long, y=lat, color=`총매출금액`, size=`총매출금액`, alpha=`총매출금액`)) +
-    guides(alpha = FALSE, size = FALSE) +
-    scale_alpha(range=c(0.3,0.5)) +
-    scale_size_continuous(range=c(1,15)) +
-    scale_colour_gradient(low="#ffcccc", high="#ff0000") +
-    theme_void()
-
-  after <- g + geom_point(data=mapping2, aes(x=long, y=lat, color=`총매출금액`, size=`총매출금액`, alpha=`총매출금액`)) +
-    guides(alpha = FALSE, size = FALSE) +
-    scale_alpha(range=c(0.3,0.5)) +
-    scale_size_continuous(range=c(1,15)) +
-    scale_colour_gradient(low="#ffcccc", high="#ff0000") +
-    theme_void()
+g + geom_point(data=mapping,
+               aes(x=long, y=lat, color=`총매출금액`, size=`총매출금액`, alpha=`총매출금액`)) +
+  guides(alpha = FALSE, size = FALSE) +
+  scale_alpha(range=c(0.3,0.5)) +
+  scale_size_continuous(range=c(1,15)) +
+  scale_colour_gradient(low="#ffcccc", high="#ff0000") +
+  theme_void()
   
-  return(list(before, after))
-}
-
-plotMap <- plotSales(mapping, mapping2)
-plotMap[[1]]
-plotMap[[2]]
 ```
 
 지도를 보면 명동에 위치한 상권의 매출금액이 가장 높은 것을 볼 수 있다. 
@@ -431,10 +402,8 @@ plotMap[[2]]
 
 점포수와 매출금액에 선형관계가 있는지 보기 위한 산점도 그래프를 그려보았다. 
 
-```{r, echo=FALSE}
-# 2019와 2020 데이터 통합
-total<- rbind(data2019, data2020)
-ggplot(total, aes(x= 점포수, y= 총매출금액)) + geom_point(alpha= 0.3)
+```{r}
+ggplot(data2020, aes(x=점포수, y=총매출금액)) + geom_point(alpha= 0.3)
 ```
 
 상권코드 별로 점포수가 많아질수록 총매출금액이 증가하는 것을 볼 수 있다. 
@@ -443,30 +412,46 @@ ggplot(total, aes(x= 점포수, y= 총매출금액)) + geom_point(alpha= 0.3)
 
 #### 3.2.2. 점포수 대비 매출금액의 박스플롯
 
-```{r, echo=FALSE}
+```{r}
+sales.ratio <- data2020
 # 점포수 대비 총매출금액으로 총매출금액 바꿔주기
-total$ 총매출금액<- total$총매출금액/total$점포수
+sales.ratio$점포수_대비_매출금액<- sales.ratio$총매출금액/sales.ratio$점포수
 
-# 점포수 대비 총 매출금액에 대한 박스플롯 그리기
-ggplot(total, aes(총매출금액)) + geom_boxplot()
-# 1분위, 3사분위 수 출력
-(quantile(total$총매출금액, prob=c(0.25, 0.75)))
+# 지도
+sales.ratio$상권_코드 <- as.factor(sales.ratio$상권_코드)
+mapping <- left_join(location, sales.ratio[,c(1, 2, 66)], by="상권_코드")
+mapping <- mapping %>% arrange(`점포수_대비_매출금액`)
 
+g + geom_point(data=mapping,
+               aes(x=long, y=lat, color=`점포수_대비_매출금액`, size=`점포수_대비_매출금액`, alpha=`점포수_대비_매출금액`)) +
+  guides(alpha = FALSE, size = FALSE) +
+  scale_alpha(range=c(0.3,0.5)) +
+  scale_size_continuous(range=c(1,15)) +
+  scale_colour_gradient(low="#ffcccc", high="#ff0000") +
+  theme_void()
 ```
 
 결과를 보면 13124111이 하위 매출금액 25%에 해당하는 값이고 35104270이 하위 매출금액 75%를 포함하는 값임을 알 수 있다. 
 
 해당 결과를 사용하여 저매출 상권은 총매출금액이 13124111원 이하인 상권으로, 고매출 상권은 총매출금액이 35104270원 이상인 상권으로 설정하였다. 
+```{r}
+# 점포수 대비 총 매출금액에 대한 박스플롯 그리기
+plot_ly(sales.ratio, x=~점포수_대비_매출금액, type='box')
+# 1분위, 3사분위 수 출력
+(quantile(sales.ratio$점포수_대비_매출금액, prob=c(0.25, 0.75)))
+```
 
-```{r, echo=FALSE}
-total<- total %>%
-  mutate(상권매출구분= ifelse(총매출금액 <= 13124111, '저매출상권', ifelse(총매출금액 >= 35104270, '고매출상권',' ')))
 
-cpr<- total %>%
+```{r}
+sales.ratio <- sales.ratio %>%
+  mutate(상권매출구분 = ifelse(
+    점포수_대비_매출금액 <= 12045866,
+    '저매출상권',
+    ifelse(점포수_대비_매출금액 >= 32406901, '고매출상권',' ')))
+
+cpr <- sales.ratio %>%
   group_by(상권매출구분) %>%
   summarize_all(mean) 
-
-print(cpr)
 ```
 
 이제 두 상권에 대한 변수들의 비교를 간단히 해보고자 한다.
@@ -475,50 +460,65 @@ print(cpr)
 
 성별, 시간대별, 연령대별, 요일별 그래프를 그려보았지만 네개의 그래프 중 저매출상권과 고매출 상권사이의 차이가 보이는 그래프만 나타내보았다. 
 
-```{r, echo=FALSE}
-cpr<- cpr[c(which(cpr$상권매출구분== '저매출상권'), which(cpr$상권매출구분== '고매출상권')),]
+```{r}
+cpr <- cpr[c(which(cpr$상권매출구분== '저매출상권'), which(cpr$상권매출구분== '고매출상권')),]
 
 # 데이터 조작과 그래프 그리는 함수선언
-make_df<-function(df, varNames){
-  temp<- df %>% dplyr::select(varNames)
-temp<-melt(as.data.frame(temp), id.vars= c("상권매출구분"))
-return(temp)
+make_df <-function(df, varNames){
+  temp <- df %>% dplyr::select(varNames)
+  temp <-melt(as.data.frame(temp), id.vars= c("상권매출구분"))
+  return(temp)
 }
 
-draw_df1<- function(df, varNames){
-  ggplot(df, aes(x= variable, y= value))+
-  geom_bar(stat="identity") + facet_wrap(~상권매출구분, nrow=1)+
-  theme(axis.text.x=element_text(angle=25, hjust=1, size=7))+
-  scale_fill_brewer(palette="Spectral")
+draw_df1 <- function(df, varNames){
+  ggplot(df, aes(x= variable, y= value)) +
+    geom_bar(stat="identity") + facet_wrap(~상권매출구분, nrow=1) +
+    theme(axis.text.x=element_text(angle=25, hjust=1, size=7)) +
+    scale_fill_brewer(palette="Spectral")
 }
 
-draw_df2<- function(df){
-  ggplot(df, aes(x=factor(상권매출구분), y=value, fill=variable)) + geom_bar(stat="identity", position="fill", width=0.4, colour="black")+
-  scale_y_continuous(labels = scales::percent_format()) +
-   theme(legend.position="right")  + 
-  theme(legend.title = element_text(size = 10)) + # legend title
-  theme(legend.text = element_text(size = 8))+
-    scale_fill_brewer(palette="Spectral")+
-  theme(axis.text.x=element_text(angle=25, hjust=1, size=7))
+draw_df2 <- function(df){
+  ggplot(df, aes(x=factor(상권매출구분), y=value, fill=variable)) +
+    geom_bar(stat="identity", position="fill", width=0.4, colour="black") +
+    scale_y_continuous(labels = scales::percent_format()) +
+    theme(legend.position="right") + 
+    theme(legend.title = element_text(size = 10)) + # legend title
+    theme(legend.text = element_text(size = 8)) +
+    scale_fill_brewer(palette="Spectral") +
+    theme(axis.text.x=element_text(angle=25, hjust=1, size=7))
 }
 
 # 연령대별 유동인구
-graph_df<- make_df(cpr, c("상권매출구분","연령대_10_유동인구_수","연령대_20_유동인구_수","연령대_30_유동인구_수","연령대_40_유동인구_수" , "연령대_50_유동인구_수","연령대_60_이상_유동인구_수"))
-float3<- draw_df2(graph_df)+ ggtitle("연령대 별 유동인구")
+graph_df <- make_df(cpr, c("상권매출구분",
+                           "연령대_10_유동인구_수",
+                           "연령대_20_유동인구_수",
+                           "연령대_30_유동인구_수",
+                           "연령대_40_유동인구_수",
+                           "연령대_50_유동인구_수",
+                           "연령대_60_이상_유동인구_수"))
+draw_df2(graph_df)+ ggtitle("연령대 별 유동인구")
 ```
 
 연령대 별 유동인구에서 고매출상권엔 연령대 20,30대 유동인구가 저매출상권에 비해 많은 반면, 저매출 상권의 경우엔 연령대 60 이상의 유동인구가 많다. 이 외 성별, 시간대 별, 연령대 별 유동인구의 비율에서는 미세한 차이가 보였다.
 
 #### 3.2.3.두 상권 별 직장인구 변수 비교
 
-```{r, echo=FALSE}
+```{r}
 # 직장인구수 
 ## 성별 직장인구
-graph_df<- make_df(cpr, c("여성_직장_인구_수","남성_직장_인구_수","상권매출구분"))
-emp1<- draw_df2(graph_df)+ ggtitle("성별 직장인구")
+graph_df <- make_df(cpr, c("여성_직장_인구_수",
+                          "남성_직장_인구_수",
+                          "상권매출구분"))
+emp1 <- draw_df2(graph_df) + ggtitle("성별 직장인구")
 ## 연령대별 유동인구
-graph_df<- make_df(cpr, c("상권매출구분","연령대_10_직장_인구_수","연령대_20_직장_인구_수","연령대_30_직장_인구_수","연령대_40_직장_인구_수" , "연령대_50_직장_인구_수","연령대_60_이상_직장_인구_수"))
-emp2<- draw_df2(graph_df)+ ggtitle("연령대 별 직장인구")
+graph_df <- make_df(cpr, c("상권매출구분",
+                          "연령대_10_직장_인구_수",
+                          "연령대_20_직장_인구_수",
+                          "연령대_30_직장_인구_수",
+                          "연령대_40_직장_인구_수", 
+                          "연령대_50_직장_인구_수",
+                          "연령대_60_이상_직장_인구_수"))
+emp2 <- draw_df2(graph_df) + ggtitle("연령대 별 직장인구")
 grid.arrange(emp1, emp2, nrow=1, ncol=2)
 ```
 
@@ -530,10 +530,16 @@ grid.arrange(emp1, emp2, nrow=1, ncol=2)
 
 연령대, 성별 직장인구 중 차이가 조금 보이는 성별 연령대 별 직장인구 만을 나타내었다. 
 
-```{r, echo=FALSE}
+```{r}
 ## 연령대별 유동인구
-graph_df<- make_df(cpr, c("상권매출구분","연령대_10_상주인구_수","연령대_20_상주인구_수","연령대_30_상주인구_수","연령대_40_상주인구_수" , "연령대_50_상주인구_수","연령대_60_이상_상주인구_수"))
-set2<- draw_df2(graph_df)+ ggtitle("연령대 별 상주인구_수")
+graph_df <- make_df(cpr, c("상권매출구분",
+                          "연령대_10_상주인구_수",
+                          "연령대_20_상주인구_수",
+                          "연령대_30_상주인구_수",
+                          "연령대_40_상주인구_수", 
+                          "연령대_50_상주인구_수",
+                          "연령대_60_이상_상주인구_수"))
+draw_df2(graph_df) + ggtitle("연령대 별 상주인구_수")
 ```
 
 저매출 상권의 경우 연령대 60이상인 상주인구수가 가장 많은 비율을 차지하고 있다. 그리고 20,30 대 상주인구의 비율이 고매출상권보단 적은 비율을 기록한다. 이로 미뤄보아 저매출상권은 젊은 층이 많이 상주하지 않는 지역임을 알 수 있다. 
@@ -542,12 +548,15 @@ set2<- draw_df2(graph_df)+ ggtitle("연령대 별 상주인구_수")
 
 #### 3.2.5.두 상권 별 소득금액, 지출금액 비교
 
-```{r, echo=FALSE}
+```{r}
 # 소득금액, 지출금액
-graph_df<- make_df(cpr, c("월_평균_소득_금액","상권매출구분"))
-income<- draw_df1(graph_df)
-graph_df<- make_df(cpr, c("문화_지출_총금액","교육_지출_총금액","상권매출구분"))
-expense<-draw_df1(graph_df)
+graph_df <- make_df(cpr, c("월_평균_소득_금액",
+                          "상권매출구분"))
+income <- draw_df1(graph_df)
+graph_df <- make_df(cpr, c("문화_지출_총금액",
+                          "교육_지출_총금액",
+                          "상권매출구분"))
+expense <- draw_df1(graph_df)
 grid.arrange(income, expense, nrow=1, ncol=2)
 ```
 
@@ -555,15 +564,25 @@ grid.arrange(income, expense, nrow=1, ncol=2)
 
 #### 3.2.6.두 상권 별 집객시설 비교
 
-```{r, echo=FALSE}
+```{r}
 # 집객시설
-graph_df<- make_df(cpr, c("상권매출구분","관공서_수","유치원_수","초등학교_수","중학교_수","고등학교_수","극장_수","숙박_시설_수","지하철_역_수","버스_정거장_수"))
-ggplot(graph_df, aes(x="", y=value, fill=variable)) + geom_bar(stat="identity", position="fill", width=0.4, colour="black")+ coord_polar("y")+
-scale_y_continuous(labels = scales::percent_format()) +
- theme(legend.position="right")  + 
-theme(legend.title = element_text(size = 10)) + # legend title
-theme(legend.text = element_text(size = 8))+
-  scale_fill_brewer(palette="Spectral")+
+graph_df<- make_df(cpr, c("상권매출구분",
+                          "관공서_수",
+                          "유치원_수",
+                          "초등학교_수",
+                          "중학교_수",
+                          "고등학교_수",
+                          "극장_수",
+                          "지하철_역_수",
+                          "버스_정거장_수"))
+ggplot(graph_df, aes(x="", y=value, fill=variable)) +
+  geom_bar(stat="identity", position="fill", width=0.4, colour="black") +
+  coord_polar("y") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme(legend.position="right") +
+  theme(legend.title = element_text(size = 10)) + # legend title
+  theme(legend.text = element_text(size = 8)) +
+  scale_fill_brewer(palette="Spectral") +
   facet_wrap(.~상권매출구분)
 ```
 
@@ -573,32 +592,17 @@ theme(legend.text = element_text(size = 8))+
 
 마지막으로 직장인구, 상주인구, 유동인구와 총매출금액에 대한 산점도를 작성해보았다. 그 중 약간의 상관관계를 보였던 직장인구수와 매출금액의 산점도만을 나타내보았다. 
 
-```{r, echo=FALSE}
-# 2019년 총 직장인구수와 총 매출금액에 대한 상관계수 구하기
-cor(data2019$총_직장_인구_수, data2019$총매출금액)
 
-# (편의상)영어로 변수 이름 바꿔주기
-Total_workpopulation2019 <- data2019$총_직장_인구_수
-Total_sales2019 <- data2019$총매출금액
-
-# 총 직장인구 수(Total_workpopulation) 오름차순으로 정렬
-# workpopulation이 올라갈 수록 총매출금액(Total_sales)의 값이 급격히 커졌음, 이런 성향 때문에 이상치 발생 예상
-reworkpopulation2019 <- Total_workpopulation2019[order(Total_workpopulation2019)]
-
+```{r}
 # 2020년 총 직장인구수와 총 매출금액에 대한 상관계수 구하기
 cor(data2020$총_직장_인구_수, data2020$총매출금액)
 
 # (편의상)영어로 변수 이름 바꿔주기
-Total_workpopulation2020 <- data2020$총_직장_인구_수
-Total_sales2020 <- data2020$총매출금액
+total.work.population2020 <- data2020$총_직장_인구_수
+total.sales2020 <- data2020$총매출금액
 
-# 총 직장인구 수(Total_workpopulation) 오름차순으로 정렬
-# workpopulation이 올라갈 수록 총매출금액(Total_sales)의 값이 급격히 커졌음, 이런 성향 때문에 이상치 발생 예상
-reworkpopulation2020 <- Total_workpopulation2020[order(Total_workpopulation2020)]
-
-# 2019, 2020년 총직장인구수와 총매출금액의 산점도 그리기
-ggplot(data2019, aes(x=Total_workpopulation2019, y=Total_sales2019, colour=Total_workpopulation2019)) + geom_point() + ggtitle(label = "2019")
-ggplot(data2020, aes(x=Total_workpopulation2020, y=Total_sales2020, colour=Total_workpopulation2020)) + geom_point() + ggtitle(label = "2020")
+# 총직장인구수와 총매출금액의 산점도 그리기
+ggplot(data2020, aes(x=total.work.population2020, y=total.sales2020, colour=total.work.population2020)) + geom_point() + ggtitle(label = "2020")
 ```
 
 총 직장인구수와 총매출금액 간 상관계수가 양의 관계로 나타났고, 그 정도가 0.4~0.6 정도로 나타난 것을 보았을 때,  즉 둘의 상관관계는 약하지 않은 것을 알 수 있다.
