@@ -34,6 +34,7 @@ showtext_auto()
 
 ```{r}
 library(tidyverse)
+library(visdat)
 library(caTools)
 library(readr)
 library(rlist)
@@ -214,7 +215,10 @@ data2020 <- list(sales2020,
                  SettledPopulation2020, 
                  earningsSpendings2020, 
                  infrastructure2020) %>% reduce(left_join, by = c("상권_코드", "기준_년_코드"))
+```
 
+```{r}
+vis_dat(data2020)
 sum(is.na(data2020))
 data2020[is.na(data2020)] <- 0
 ```
