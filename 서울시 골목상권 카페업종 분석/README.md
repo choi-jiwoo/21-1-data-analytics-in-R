@@ -2,7 +2,7 @@
 
 ## 분석보고서
 
-보고서 내용은 [rpubs](https://rpubs.com/cho2jiwoo/874720)에서 확인해 보실 수 있습니다.
+보고서 내용은 [rpubs](https://rpubs.com/cho2jiwoo/909153)에서 확인해 보실 수 있습니다.
 
 ## 데이터
 
